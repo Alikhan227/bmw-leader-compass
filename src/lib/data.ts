@@ -29,7 +29,7 @@ export const candidates: Candidate[] = [
     id: "c1",
     name: "Dr. Helena Richter",
     currentRole: "VP Operations, Powertrain Division",
-    company: "BMW Group (Internal)",
+    company: "BMW Group",
     yearsExperience: 18,
     source: "external",
     avatarInitials: "HR",
