@@ -6,7 +6,7 @@ import { ScenarioToggle } from "@/components/ScenarioToggle";
 import { CandidateRankList } from "@/components/CandidateRankList";
 import { LeadershipRadar } from "@/components/LeadershipRadar";
 import { ReasoningPanel } from "@/components/ReasoningPanel";
-import { SourceComparison } from "@/components/SourceComparison";
+
 import { rankCandidates } from "@/lib/data";
 
 export default function Index() {
