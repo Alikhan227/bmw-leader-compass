@@ -31,7 +31,7 @@ export const candidates: Candidate[] = [
     currentRole: "VP Operations, Powertrain Division",
     company: "BMW Group (Internal)",
     yearsExperience: 18,
-    source: "internal",
+    source: "external",
     avatarInitials: "HR",
     traits: { riskTaking: 3, processFocus: 9, resilience: 7, innovation: 4, stakeholderManagement: 8, executionSpeed: 6 },
     fitScores: { "automotive-continuity": 92, transformation: 58, "supply-chain-crisis": 74 },
