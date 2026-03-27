@@ -53,10 +53,7 @@ export default function Index() {
 
           {/* Right: Detail Panel */}
           <section className="lg:col-span-7 space-y-4" aria-label="Candidate Details">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <LeadershipRadar candidate={selectedCandidate} scenario={scenario} />
-              <SourceComparison candidates={candidates} scenario={scenario} />
-            </div>
             <ReasoningPanel candidate={selectedCandidate} scenario={scenario} />
           </section>
         </div>
