@@ -30,7 +30,7 @@ export function ReasoningPanel({ candidate, scenario }: ReasoningPanelProps) {
         </div>
 
         {/* Reasoning text */}
-        <div className="bg-accent/50 rounded-md p-4 border-l-4 border-primary">
+        <div className="bg-[#111111] rounded-none p-4 border-l-4 border-[#0066B1]">
           <p className="text-sm leading-relaxed text-foreground">
             {candidate.reasoning[scenario]}
           </p>
@@ -61,19 +61,19 @@ export function ReasoningPanel({ candidate, scenario }: ReasoningPanelProps) {
         </div>
 
         {/* Speed vs Right Hire explicit trade-off */}
-        <div className="bg-muted/50 rounded-md p-4">
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-            ⚖️ Speed vs. Right Hire
+        <div className="bg-[#0A0A0A] border border-[#333333] rounded-none p-4">
+          <h4 className="text-[10px] font-bold text-[#0066B1] uppercase tracking-[0.2em] mb-2">
+            Speed vs. Right Hire
           </h4>
           <div className="flex items-center gap-3">
             <div className="flex-1">
-              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+              <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1.5">
                 <span>Faster</span>
                 <span>Better Fit</span>
               </div>
-              <div className="h-2 bg-muted rounded-full relative overflow-hidden">
+              <div className="h-1 bg-[#222222] rounded-none relative overflow-hidden">
                 <motion.div
-                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-bmw-warning to-bmw-success rounded-full"
+                  className="absolute left-0 top-0 h-full bg-[#0066B1] rounded-none"
                   initial={{ width: 0 }}
                   animate={{ width: `${fitScore}%` }}
                   transition={{ duration: 0.5 }}
@@ -109,9 +109,9 @@ function TradeoffCard({
     "bg-bmw-danger/10 border-bmw-danger/30";
 
   return (
-    <div className={`rounded-md border p-3 ${bg}`}>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-lg font-bold text-foreground">{value}</p>
+    <div className={`rounded-none border p-3 ${bg}`}>
+      <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">{label}</p>
+      <p className="text-lg font-bold text-white tracking-wider">{value}</p>
     </div>
   );
 }

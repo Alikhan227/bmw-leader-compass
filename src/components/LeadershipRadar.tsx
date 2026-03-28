@@ -1,5 +1,5 @@
 import { Candidate, Scenario } from "@/lib/types";
-import { getScenarioConfig } from "@/lib/data";
+import { getScenarioConfig, candidates } from "@/lib/data";
 import {
   RadarChart,
   PolarGrid,
@@ -9,7 +9,10 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
 
 interface LeadershipRadarProps {
   candidate: Candidate;
@@ -27,20 +30,69 @@ const traitLabels: Record<string, string> = {
 
 export function LeadershipRadar({ candidate, scenario }: LeadershipRadarProps) {
   const config = getScenarioConfig(scenario);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const compareCandidates = candidates.filter(c => compareIds.includes(c.id));
+
+  const toggleCompare = (id: string, e: Event) => {
+    e.preventDefault();
+    setCompareIds(prev => {
+      if (prev.includes(id)) return prev.filter(i => i !== id);
+      if (prev.length >= 2) return prev; // Max 2
+      return [...prev, id];
+    });
+  };
 
   const data = useMemo(() => {
-    return Object.entries(candidate.traits).map(([key, value]) => ({
-      trait: traitLabels[key] || key,
-      candidate: value,
-      scenarioWeight: (config.weights[key as keyof typeof config.weights] || 0) * 10,
-    }));
-  }, [candidate, config]);
+    return Object.entries(candidate.traits).map(([key, value]) => {
+      const point: any = {
+        trait: traitLabels[key] || key,
+        candidate: value,
+        scenarioWeight: (config.weights[key as keyof typeof config.weights] || 0) * 10,
+      };
+      
+      compareCandidates.forEach((c, index) => {
+        point[`compare_${index}`] = c.traits[key as keyof typeof c.traits];
+      });
+      
+      return point;
+    });
+  }, [candidate, config, compareCandidates]);
 
   return (
     <div className="bmw-card p-4">
-      <h3 className="bmw-section-title mb-1">Leadership Profile</h3>
-      <p className="text-sm font-semibold text-foreground mb-3">{candidate.name}</p>
-      <div className="h-64" role="img" aria-label={`Radar chart showing leadership traits for ${candidate.name}`}>
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <h3 className="bmw-section-title mb-1">Leadership Profile</h3>
+          <p className="text-sm font-semibold text-foreground">{candidate.name}</p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 text-xs w-[140px] justify-between bg-sidebar">
+              {compareIds.length === 0 ? "Compare with..." : `${compareIds.length} Selected`}
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[200px]">
+            <DropdownMenuLabel className="text-xs">Compare Candidates (Max 2)</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {candidates
+              .filter(c => c.id !== candidate.id)
+              .map(c => (
+                <DropdownMenuCheckboxItem
+                  key={c.id}
+                  checked={compareIds.includes(c.id)}
+                  onSelect={(e) => toggleCompare(c.id, e)}
+                  disabled={!compareIds.includes(c.id) && compareIds.length >= 2}
+                  className="text-xs"
+                >
+                  {c.name}
+                </DropdownMenuCheckboxItem>
+              ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="h-80" role="img" aria-label={`Radar chart showing leadership traits for ${candidate.name}`}>
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={data} cx="50%" cy="50%" outerRadius="70%">
             <PolarGrid stroke="hsl(var(--border))" />
@@ -62,7 +114,7 @@ export function LeadershipRadar({ candidate, scenario }: LeadershipRadarProps) {
               strokeWidth={2}
             />
             <Radar
-              name="Scenario Weight"
+              name="Scenario Target"
               dataKey="scenarioWeight"
               stroke="hsl(var(--bmw-warning))"
               fill="hsl(var(--bmw-warning))"
@@ -70,6 +122,26 @@ export function LeadershipRadar({ candidate, scenario }: LeadershipRadarProps) {
               strokeWidth={1.5}
               strokeDasharray="4 4"
             />
+            {compareCandidates[0] && (
+              <Radar
+                name={compareCandidates[0].name}
+                dataKey="compare_0"
+                stroke="#10b981"
+                fill="#10b981"
+                fillOpacity={0.25}
+                strokeWidth={2}
+              />
+            )}
+            {compareCandidates[1] && (
+              <Radar
+                name={compareCandidates[1].name}
+                dataKey="compare_1"
+                stroke="#8b5cf6"
+                fill="#8b5cf6"
+                fillOpacity={0.25}
+                strokeWidth={2}
+              />
+            )}
             <Legend
               wrapperStyle={{ fontSize: 11 }}
             />

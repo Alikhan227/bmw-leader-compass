@@ -22,6 +22,14 @@ export interface Candidate {
   costToHire: number; // relative 1-10
   riskScore: Record<Scenario, number>; // 1-10
   reasoning: Record<Scenario, string>;
+  isNew?: boolean;
+  bio?: {
+    dateOfBirth: string;
+    placeOfBirth: string;
+    education: string;
+    applicationDate: string;
+    description: string;
+  };
 }
 
 export interface ScenarioConfig {

@@ -19,15 +19,15 @@ export function ScenarioToggle({ active, onChange }: ScenarioToggleProps) {
               role="radio"
               aria-checked={isActive}
               onClick={() => onChange(s.id)}
-              className={`relative flex-1 px-4 py-3 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-                isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              className={`relative flex-1 px-4 py-3 rounded-none text-[11px] font-bold uppercase tracking-widest transition-colors border-r last:border-r-0 border-[#333333] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-white bg-[#0A0A0A] hover:bg-[#111111]"
               }`}
             >
               {isActive && (
                 <motion.div
                   layoutId="scenario-indicator"
-                  className="absolute inset-0 rounded-md bg-primary"
-                  transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
+                  className="absolute inset-0 rounded-none bg-primary"
+                  transition={{ type: "spring", duration: 0.4, bounce: 0 }}
                 />
               )}
               <span className="relative z-10 flex items-center justify-center gap-2">

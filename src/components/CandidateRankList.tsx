@@ -13,9 +13,9 @@ interface CandidateRankListProps {
 
 function ScoreBadge({ score }: { score: number }) {
   const colorClass =
-    score >= 85 ? "bg-bmw-success/15 text-bmw-success" :
-    score >= 65 ? "bg-bmw-warning/15 text-bmw-warning" :
-    "bg-bmw-danger/15 text-bmw-danger";
+    score >= 85 ? "bg-bmw-success/20 text-bmw-success border border-bmw-success/30 rounded-none uppercase tracking-widest" :
+    score >= 65 ? "bg-bmw-warning/20 text-bmw-warning border border-bmw-warning/30 rounded-none uppercase tracking-widest" :
+    "bg-bmw-danger/20 text-bmw-danger border border-bmw-danger/30 rounded-none uppercase tracking-widest";
   return <span className={`bmw-score-badge ${colorClass}`}>{score}%</span>;
 }
 
@@ -27,10 +27,10 @@ function RiskIndicator({ risk }: { risk: number }) {
         {Array.from({ length: 10 }).map((_, i) => (
           <div
             key={i}
-            className={`w-1.5 h-3 rounded-sm ${
+            className={`w-1.5 h-3 rounded-none ${
               i < risk
                 ? risk >= 7 ? "bg-bmw-danger" : risk >= 4 ? "bg-bmw-warning" : "bg-bmw-success"
-                : "bg-muted"
+                : "bg-[#111111]"
             }`}
           />
         ))}
@@ -57,7 +57,7 @@ export const CandidateRankList = memo(function CandidateRankList({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+            transition={{ type: "spring", bounce: 0, duration: 0.28 }}
             role="option"
             aria-selected={selectedId === c.id}
             onClick={() => onSelect(c.id)}
@@ -67,12 +67,12 @@ export const CandidateRankList = memo(function CandidateRankList({
           >
             <div className="flex items-start gap-4">
               {/* Rank number */}
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-bold">
+              <div className="flex-shrink-0 w-8 h-8 rounded-none bg-primary flex items-center justify-center text-primary-foreground text-sm font-bold shadow-none">
                 {idx + 1}
               </div>
 
               {/* Avatar */}
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-accent flex items-center justify-center text-accent-foreground text-sm font-semibold">
+              <div className="flex-shrink-0 w-10 h-10 rounded-none bg-[#0B1120] border border-border/40 flex items-center justify-center text-white text-sm font-semibold">
                 {c.avatarInitials}
               </div>
 
@@ -94,16 +94,16 @@ export const CandidateRankList = memo(function CandidateRankList({
 
             {/* Speed vs Right Hire bar */}
             <div className="mt-3 pt-3 border-t border-border">
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                <span>⏱ {c.timeToHire}d to hire</span>
-                <span>💰 Cost: {c.costToHire}/10</span>
+              <div className="flex items-center justify-between text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-1.5">
+                <span>⏱ {c.timeToHire}d to deploy</span>
+                <span>Rel. Cost: {c.costToHire}/10</span>
               </div>
-              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div className="h-1 bg-[#111111] rounded-none overflow-hidden">
                 <motion.div
-                  className="h-full bg-primary rounded-full"
+                  className="h-full bg-primary rounded-none"
                   initial={{ width: 0 }}
                   animate={{ width: `${c.fitScores[scenario]}%` }}
-                  transition={{ duration: 0.5, delay: idx * 0.05 }}
+                  transition={{ duration: 0.35, delay: idx * 0.05 }}
                 />
               </div>
             </div>

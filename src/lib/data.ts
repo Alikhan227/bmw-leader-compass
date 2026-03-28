@@ -42,6 +42,13 @@ export const candidates: Candidate[] = [
       transformation: "While experienced, Dr. Richter's low risk-taking and innovation scores suggest she may resist the pace of digital transformation. Consider pairing with a Chief Digital Officer.",
       "supply-chain-crisis": "Strong resilience and stakeholder management compensate for moderate execution speed. Her broad organizational network enables rapid cross-functional coordination during crises.",
     },
+    bio: {
+      dateOfBirth: "12 May 1975",
+      placeOfBirth: "Munich, Germany",
+      education: "Ph.D. in Mechanical Engineering, Technical University of Munich",
+      applicationDate: "14 Oct 2026",
+      description: "A seasoned executive with over 18 years of experience in powertrain engineering. I believe in operational excellence through rigorous process optimization and stable, deeply integrated teams. My leadership style emphasizes continuity, precision, and building long-term stakeholder trust.",
+    },
   },
   {
     id: "c2",
@@ -59,6 +66,14 @@ export const candidates: Candidate[] = [
       "automotive-continuity": "Chen's disruption-oriented profile creates significant risk for continuity-focused operations. His low process-focus score conflicts with the stability requirements of this scenario.",
       transformation: "Top candidate. Chen led Siemens Mobility's €2B digital platform migration. His innovation score (9/10) and execution speed (8/10) directly align with transformation priorities.",
       "supply-chain-crisis": "Strong execution speed but moderate resilience. His fresh perspective could bring novel crisis management approaches, though onboarding time (60 days) is a concern.",
+    },
+    isNew: true,
+    bio: {
+      dateOfBirth: "03 Aug 1982",
+      placeOfBirth: "Singapore",
+      education: "MBA, INSEAD; B.S. Computer Science, MIT",
+      applicationDate: "27 Mar 2026",
+      description: "Passionate about rewriting the rules of traditional manufacturing through digital platforms. Built Siemens Mobility's digital twin ecosystem from the ground up. I thrive in high-ambiguity environments where rapid, transformational decisions define survival.",
     },
   },
   {
@@ -78,6 +93,14 @@ export const candidates: Candidate[] = [
       transformation: "Well-rounded leadership traits with strong innovation capacity. Her supply chain transformation experience at Stellantis is transferable to broader digital initiatives.",
       "supply-chain-crisis": "Definitive crisis leader. Resilience (9/10), stakeholder management (9/10), and execution speed (9/10) form the ideal crisis response profile. She managed Stellantis' semiconductor shortage response, reducing downtime by 40%.",
     },
+    isNew: true,
+    bio: {
+      dateOfBirth: "19 Nov 1978",
+      placeOfBirth: "Lagos, Nigeria",
+      education: "M.Sc. Supply Chain Management, MIT Zaragoza",
+      applicationDate: "26 Mar 2026",
+      description: "Crisis-tested global supply chain leader. I specialize in building highly resilient, redundant material flow networks. Whether it's the semiconductor shortage or geopolitical disruptions, my approach is proactive risk-mitigation combined with aggressive incident response.",
+    },
   },
   {
     id: "c4",
@@ -96,6 +119,13 @@ export const candidates: Candidate[] = [
       transformation: "Moderate innovation and risk-taking scores limit his transformation potential. Could serve as a stabilizing force in a transformation team but not as lead.",
       "supply-chain-crisis": "Excellent crisis candidate due to resilience (8/10) and fastest time-to-deploy (7 days). The speed-to-deployment advantage may outweigh marginally lower fit scores vs. Okonkwo.",
     },
+    bio: {
+      dateOfBirth: "05 Feb 1985",
+      placeOfBirth: "Leipzig, Germany",
+      education: "B.Eng. Industrial Engineering, RWTH Aachen",
+      applicationDate: "10 Feb 2026",
+      description: "Deeply embedded in the BMW manufacturing ecosystem. I know the factory floor as well as the boardroom. Focused on maximizing lean efficiency and ensuring stability during critical system upgrades.",
+    },
   },
   {
     id: "c5",
@@ -113,6 +143,14 @@ export const candidates: Candidate[] = [
       "automotive-continuity": "Kapoor's digital-first approach and low process-focus score make her a poor fit for continuity operations. High risk of cultural misalignment.",
       transformation: "Strong transformation candidate with proven digital product leadership. Her VW experience brings relevant automotive context. Ranked #2 behind Chen due to less executive-level experience.",
       "supply-chain-crisis": "Innovation and speed are assets, but low resilience (5/10) and stakeholder management (5/10) are critical gaps for crisis leadership.",
+    },
+    isNew: true,
+    bio: {
+      dateOfBirth: "22 Sep 1988",
+      placeOfBirth: "Mumbai, India",
+      education: "M.S. Software Engineering, Stanford University",
+      applicationDate: "28 Mar 2026",
+      description: "Digital product visionary bridging the gap between hardware and software in the automotive space. Led VW's connected car interface redesign. I believe the future of mobility is a software problem, and I build the agile teams needed to solve it.",
     },
   },
 ];
