@@ -1,0 +1,400 @@
+{
+  "name": "BMW AI-Powered Candidate Evaluation and Ranking System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "b57e4f76-abce-44e4-82bb-150979c13861",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        400,
+        304
+      ],
+      "id": "748d6caa-3feb-4e4f-9eb7-729c36e1333f",
+      "name": "Webhook",
+      "webhookId": "b57e4f76-abce-44e4-82bb-150979c13861"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// 1. Get webhook payload\nconst webhookData = $input.all()[0]?.json?.body || {};\nconst roleId = webhookData.role_id || \"logistics_lead\";\n\n// 2. Job Descriptions database\nconst jobDescriptions = {\n  \"logistics_lead\": {\n    \"title\": \"Senior Lead, Production & Logistics Excellence — VP Powertrain Operations\",\n    \"core_requirements\": [\n      \"Lean Manufacturing\", \"Supply Chain Management\", \"Crisis Management\",\n      \"Cross-functional Leadership\", \"Operational Excellence\", \"Board-level Stakeholder Management\"\n    ],\n    \"full_description\": \"We are seeking an exceptional executive to lead our Powertrain Operations division through transformational change. Oversee 200+ engineers across 3 manufacturing sites, driving operational excellence while navigating the ICE-to-EV transition.\"\n  },\n  \"ev_tech_director\": {\n    \"title\": \"Director of EV Software Integration\",\n    \"core_requirements\": [\n      \"Software Engineering\", \"Agile Scaling\", \"EV Battery Systems\",\n      \"Rapid Prototyping\", \"Cross-functional Technical Leadership\"\n    ],\n    \"full_description\": \"Lead BMW's EV software integration team to deliver next-generation battery management and connected vehicle systems.\"\n  }\n};\n\n// 3. Candidate Pool — full profiles for AI analysis + frontend rendering\nconst candidates = [\n  {\n    \"id\": \"c1\",\n    \"name\": \"Dr. Helena Richter\",\n    \"current_role\": \"VP Operations, Powertrain Division\",\n    \"company\": \"BMW Group\",\n    \"experience_years\": 18,\n    \"avatar_initials\": \"HR\",\n    \"time_to_hire\": 14,\n    \"cost_to_hire\": 2,\n    \"is_new\": false,\n    \"skills\": [\"Lean Manufacturing\", \"Process Optimization\", \"Stakeholder Management\", \"Operational Excellence\", \"Team Leadership\", \"Quality Systems\"],\n    \"background\": \"18-year tenure at BMW in powertrain engineering. Deep process expertise. Extensive board-level stakeholder network. Known for building stable, high-performing teams.\",\n    \"bio\": {\n      \"dateOfBirth\": \"12 May 1975\",\n      \"placeOfBirth\": \"Munich, Germany\",\n      \"education\": \"Ph.D. in Mechanical Engineering, Technical University of Munich\",\n      \"applicationDate\": \"14 Oct 2026\",\n      \"description\": \"A seasoned executive with over 18 years of experience in powertrain engineering. Focused on operational excellence through rigorous process optimization.\"\n    }\n  },\n  {\n    \"id\": \"c2\",\n    \"name\": \"Marcus Chen\",\n    \"current_role\": \"Chief Transformation Officer\",\n    \"company\": \"Siemens Mobility\",\n    \"experience_years\": 15,\n    \"avatar_initials\": \"MC\",\n    \"time_to_hire\": 60,\n    \"cost_to_hire\": 8,\n    \"is_new\": true,\n    \"skills\": [\"Digital Transformation\", \"Agile Scaling\", \"Platform Architecture\", \"Change Management\", \"Innovation Strategy\", \"AI/ML Integration\"],\n    \"background\": \"Led Siemens Mobility's EUR 2B digital platform migration. Built digital twin ecosystem. INSEAD MBA + MIT CS. Thrives in high-ambiguity transformation environments.\",\n    \"bio\": {\n      \"dateOfBirth\": \"03 Aug 1982\",\n      \"placeOfBirth\": \"Singapore\",\n      \"education\": \"MBA, INSEAD; B.S. Computer Science, MIT\",\n      \"applicationDate\": \"27 Mar 2026\",\n      \"description\": \"Passionate about rewriting rules of traditional manufacturing through digital platforms. Built Siemens Mobility's digital twin ecosystem.\"\n    }\n  },\n  {\n    \"id\": \"c3\",\n    \"name\": \"Sarah Okonkwo\",\n    \"current_role\": \"SVP Global Supply Chain\",\n    \"company\": \"Stellantis\",\n    \"experience_years\": 20,\n    \"avatar_initials\": \"SO\",\n    \"time_to_hire\": 45,\n    \"cost_to_hire\": 9,\n    \"is_new\": true,\n    \"skills\": [\"Crisis Management\", \"Supply Chain Resilience\", \"Risk Assessment\", \"Cross-functional Coordination\", \"Vendor Management\", \"Rapid Response Operations\"],\n    \"background\": \"20 years in global supply chain leadership. Managed Stellantis semiconductor shortage response, reducing downtime by 40%. Expert in building resilient supply networks.\",\n    \"bio\": {\n      \"dateOfBirth\": \"19 Nov 1978\",\n      \"placeOfBirth\": \"Lagos, Nigeria\",\n      \"education\": \"M.Sc. Supply Chain Management, MIT Zaragoza\",\n      \"applicationDate\": \"26 Mar 2026\",\n      \"description\": \"Crisis-tested global supply chain leader specializing in resilient, redundant material flow networks.\"\n    }\n  },\n  {\n    \"id\": \"c4\",\n    \"name\": \"Thomas Weber\",\n    \"current_role\": \"Director of Manufacturing Excellence\",\n    \"company\": \"BMW Group\",\n    \"experience_years\": 12,\n    \"avatar_initials\": \"TW\",\n    \"time_to_hire\": 7,\n    \"cost_to_hire\": 1,\n    \"is_new\": false,\n    \"skills\": [\"Lean Manufacturing\", \"Quality Assurance\", \"Production Planning\", \"Team Development\", \"Process Improvement\", \"Factory Operations\"],\n    \"background\": \"12 years at BMW in manufacturing. Deep factory-floor + boardroom knowledge. Fastest deployment as internal candidate. Focused on lean efficiency and stability.\",\n    \"bio\": {\n      \"dateOfBirth\": \"05 Feb 1985\",\n      \"placeOfBirth\": \"Leipzig, Germany\",\n      \"education\": \"B.Eng. Industrial Engineering, RWTH Aachen\",\n      \"applicationDate\": \"10 Feb 2026\",\n      \"description\": \"Deeply embedded in the BMW manufacturing ecosystem. Focused on maximizing lean efficiency and ensuring stability.\"\n    }\n  }\n];\n\n// 4. Team Metrics (from webhook or defaults matching the Powertrain team)\nconst teamMetrics = webhookData.team_metrics || {\n  \"digital_fluency\": 4.2,\n  \"crisis_resilience\": 6.8,\n  \"innovation_index\": 5.1,\n  \"process_maturity\": 8.3,\n  \"stakeholder_coverage\": 5.7,\n  \"execution_velocity\": 6.5,\n  \"team_size\": 3,\n  \"key_gaps\": [\"Low stakeholder management (avg 5.7/10)\", \"Weak risk-taking appetite (avg 4.3/10)\", \"No board-level executive representation\"]\n};\n\nreturn [{\n  json: {\n    task: \"Evaluate candidates across 3 business scenarios with team gap analysis\",\n    selected_jd: jobDescriptions[roleId] || jobDescriptions[\"logistics_lead\"],\n    current_team_metrics: teamMetrics,\n    candidate_pool: candidates\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        304
+      ],
+      "id": "ccd9f7f7-b3e3-4c02-b4eb-4320e0216320",
+      "name": "Prepare Data"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this Job Description and produce scenario-specific competency weights.\n\nJOB DESCRIPTION:\nTitle: {{ $('Prepare Data').first().json.selected_jd.title }}\nRequirements: {{ $('Prepare Data').first().json.selected_jd.core_requirements.join(', ') }}\nDescription: {{ $('Prepare Data').first().json.selected_jd.full_description }}\n\nGenerate weights for these 3 business scenarios:\n1. supply_chain_crisis — Prioritize resilience, rapid execution, risk management, crisis response\n2. transformation — Prioritize innovation, digital agility, risk-taking, rapid execution\n3. automotive_continuity — Prioritize process focus, stability, stakeholder management, operational excellence\n\nFor EACH scenario, assign a decimal weight (0.0 to 1.0) to EACH of the 6 dimensions: riskTaking, processFocus, resilience, innovation, stakeholderManagement, executionSpeed. All 6 weights in each scenario MUST sum to exactly 1.0.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are the JD Context Agent for BMW Group recruitment. You analyze job descriptions and produce competency weighting frameworks.\n\nYou MUST use EXACTLY these 6 Leadership Dimensions as keys:\n- riskTaking (Willingness to take calculated risks)\n- processFocus (Emphasis on procedures and governance)\n- resilience (Ability to recover from setbacks)\n- innovation (Drive to introduce novel approaches)\n- stakeholderManagement (Skill in managing relationships)\n- executionSpeed (Ability to deliver results quickly)\n\nRULES:\n1. Use the EXACT camelCase key names above. Do NOT rename, translate, or add new keys.\n2. Each scenario must have exactly 6 weights that sum to exactly 1.0.\n3. Include a brief reasoning string for each scenario.\n4. Output ONLY the JSON object matching the required schema. No other text."
+        }
+      },
+      "id": "e30bd07d-0aad-4ec8-9c57-1e04104f2209",
+      "name": "JD Context Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        920,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.15
+        }
+      },
+      "id": "91931fb2-91a0-4788-add4-835429f38c52",
+      "name": "JD Context Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        920,
+        620
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "lSWJ8UELlbsCTkDV",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"supply_chain_crisis\": {\n    \"weights\": {\n      \"riskTaking\": 0.15,\n      \"processFocus\": 0.05,\n      \"resilience\": 0.3,\n      \"innovation\": 0.1,\n      \"stakeholderManagement\": 0.15,\n      \"executionSpeed\": 0.25\n    },\n    \"reasoning\": \"In a supply chain crisis, resilience and execution speed are paramount to maintain production continuity.\"\n  },\n  \"transformation\": {\n    \"weights\": {\n      \"riskTaking\": 0.2,\n      \"processFocus\": 0.05,\n      \"resilience\": 0.1,\n      \"innovation\": 0.3,\n      \"stakeholderManagement\": 0.15,\n      \"executionSpeed\": 0.2\n    },\n    \"reasoning\": \"Digital transformation demands innovation leadership and calculated risk-taking to drive change.\"\n  },\n  \"automotive_continuity\": {\n    \"weights\": {\n      \"riskTaking\": 0.05,\n      \"processFocus\": 0.3,\n      \"resilience\": 0.1,\n      \"innovation\": 0.1,\n      \"stakeholderManagement\": 0.3,\n      \"executionSpeed\": 0.15\n    },\n    \"reasoning\": \"Business continuity requires strong process governance and deep stakeholder management.\"\n  }\n}",
+        "autoFix": true
+      },
+      "id": "d7611a04-94e5-4a64-8662-0475ce02c920",
+      "name": "JD Context Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1100,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=SCENARIO WEIGHTS (from JD Context Agent):\n{{ JSON.stringify($('JD Context Agent').first().json.output) }}\n\nCANDIDATE POOL (4 candidates to evaluate):\n{{ JSON.stringify($('Prepare Data').first().json.candidate_pool) }}\n\nScore ALL 4 candidates on the 6 leadership dimensions (1-10 each). Then calculate fitScore (0-100) and riskScore (1-10) for each of the 3 scenarios using the weights above. Provide brief reasoning per scenario per candidate.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are the CV Scoring Agent for BMW Group recruitment. You evaluate ALL candidates simultaneously against 6 Leadership Dimensions across 3 business scenarios.\n\nThe 6 Leadership Dimensions (use EXACT camelCase keys):\n- riskTaking, processFocus, resilience, innovation, stakeholderManagement, executionSpeed\n\nThe 3 Scenarios (use EXACT underscore keys):\n- automotive_continuity, transformation, supply_chain_crisis\n\nFor EACH candidate you MUST:\n1. Assign a trait score (integer 1-10) for each of the 6 dimensions based on their profile evidence.\n2. Calculate fitScore (integer 0-100) for each scenario: fitScore = round(sum(trait_score * weight * 10)) for each dimension, capped at 100.\n3. Assign a riskScore (integer 1-10, 1=lowest risk) for each scenario.\n4. Write exactly 1-2 sentences of reasoning per scenario.\n\nRULES:\n- Score ALL candidates. Do not skip any.\n- Use candidate IDs exactly as provided (c1, c2, c3, c4).\n- Be objective. Use specific evidence from their profiles. Avoid generic assessments.\n- Output ONLY the JSON matching the schema. No extra text, no markdown."
+        }
+      },
+      "id": "e1607605-c4a6-4442-b7a4-f8ba0e899d8e",
+      "name": "CV Scoring Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1400,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.15
+        }
+      },
+      "id": "5fa5fc8d-353b-4b12-a608-7895a556bc7f",
+      "name": "CV Scoring Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1400,
+        620
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "lSWJ8UELlbsCTkDV",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"scored_candidates\": [\n    {\n      \"id\": \"c1\",\n      \"name\": \"Dr. Helena Richter\",\n      \"traits\": {\n        \"riskTaking\": 3,\n        \"processFocus\": 9,\n        \"resilience\": 7,\n        \"innovation\": 4,\n        \"stakeholderManagement\": 8,\n        \"executionSpeed\": 6\n      },\n      \"fitScores\": {\n        \"automotive_continuity\": 85,\n        \"transformation\": 52,\n        \"supply_chain_crisis\": 71\n      },\n      \"riskScores\": {\n        \"automotive_continuity\": 2,\n        \"transformation\": 7,\n        \"supply_chain_crisis\": 4\n      },\n      \"reasoning\": {\n        \"automotive_continuity\": \"Strong process focus and stakeholder management make her ideal for continuity operations.\",\n        \"transformation\": \"Low risk-taking and innovation scores limit her transformation potential.\",\n        \"supply_chain_crisis\": \"Good resilience and stakeholder skills compensate for moderate execution speed.\"\n      }\n    },\n    {\n      \"id\": \"c2\",\n      \"name\": \"Marcus Chen\",\n      \"traits\": {\n        \"riskTaking\": 8,\n        \"processFocus\": 4,\n        \"resilience\": 6,\n        \"innovation\": 9,\n        \"stakeholderManagement\": 7,\n        \"executionSpeed\": 8\n      },\n      \"fitScores\": {\n        \"automotive_continuity\": 48,\n        \"transformation\": 91,\n        \"supply_chain_crisis\": 68\n      },\n      \"riskScores\": {\n        \"automotive_continuity\": 8,\n        \"transformation\": 2,\n        \"supply_chain_crisis\": 5\n      },\n      \"reasoning\": {\n        \"automotive_continuity\": \"Disruption-oriented profile creates risk for stability-focused operations.\",\n        \"transformation\": \"Top candidate with proven digital platform leadership at Siemens.\",\n        \"supply_chain_crisis\": \"Strong execution speed but moderate resilience for crisis management.\"\n      }\n    },\n    {\n      \"id\": \"c3\",\n      \"name\": \"Sarah Okonkwo\",\n      \"traits\": {\n        \"riskTaking\": 6,\n        \"processFocus\": 5,\n        \"resilience\": 9,\n        \"innovation\": 6,\n        \"stakeholderManagement\": 9,\n        \"executionSpeed\": 9\n      },\n      \"fitScores\": {\n        \"automotive_continuity\": 65,\n        \"transformation\": 70,\n        \"supply_chain_crisis\": 93\n      },\n      \"riskScores\": {\n        \"automotive_continuity\": 5,\n        \"transformation\": 4,\n        \"supply_chain_crisis\": 1\n      },\n      \"reasoning\": {\n        \"automotive_continuity\": \"Balanced profile works but higher cost is unnecessary for continuity.\",\n        \"transformation\": \"Strong all-around leader with transferable transformation experience.\",\n        \"supply_chain_crisis\": \"Definitive crisis leader with top resilience and execution scores.\"\n      }\n    },\n    {\n      \"id\": \"c4\",\n      \"name\": \"Thomas Weber\",\n      \"traits\": {\n        \"riskTaking\": 5,\n        \"processFocus\": 7,\n        \"resilience\": 8,\n        \"innovation\": 5,\n        \"stakeholderManagement\": 6,\n        \"executionSpeed\": 7\n      },\n      \"fitScores\": {\n        \"automotive_continuity\": 75,\n        \"transformation\": 58,\n        \"supply_chain_crisis\": 78\n      },\n      \"riskScores\": {\n        \"automotive_continuity\": 3,\n        \"transformation\": 6,\n        \"supply_chain_crisis\": 3\n      },\n      \"reasoning\": {\n        \"automotive_continuity\": \"Solid continuity candidate with balanced traits and fast deployment.\",\n        \"transformation\": \"Limited innovation constrains transformation leadership potential.\",\n        \"supply_chain_crisis\": \"Strong crisis option with fastest time-to-deploy advantage.\"\n      }\n    }\n  ]\n}",
+        "autoFix": true
+      },
+      "id": "15daeedb-3298-4564-9653-46531f93b252",
+      "name": "CV Scoring Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1580,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=SCORED CANDIDATES (with trait scores, fit scores, risk scores, and reasoning):\n{{ JSON.stringify($('CV Scoring Agent').first().json.output) }}\n\nCURRENT TEAM METRICS (identifies the team's strengths and weaknesses):\n{{ JSON.stringify($('Prepare Data').first().json.current_team_metrics) }}\n\nJOB CONTEXT:\n{{ JSON.stringify($('Prepare Data').first().json.selected_jd) }}\n\nFor each of the 3 scenarios, recommend the best candidate. Explain how they fill the team's skill gaps. Analyze trade-offs vs alternatives. Identify risks and mitigations.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are the Decision Intelligence Agent for BMW Group executive hiring. You synthesize scored candidates with current team metrics to make strategic hiring recommendations.\n\nFor EACH of the 3 scenarios (automotive_continuity, transformation, supply_chain_crisis), you MUST:\n1. Recommend the best candidate considering BOTH fit score AND team gap coverage.\n2. Conduct a Skill Gap Analysis: explain HOW the recommended candidate's strengths address the team's specific weaknesses.\n3. Assess 2-3 hiring risks with severity (High/Medium/Low) and mitigation strategies.\n4. Analyze trade-offs (Speed vs. Quality, Cost vs. Fit, Internal vs. External).\n5. State confidence level (High/Medium/Low).\n6. List exactly 2 alternative candidates with brief rationale.\n\nRULES:\n- Cover ALL 3 scenarios. Do not skip any.\n- Use exact keys: automotive_continuity, transformation, supply_chain_crisis.\n- risks array: exactly 2-3 items per scenario.\n- alternatives array: exactly 2 items per scenario.\n- Output ONLY valid JSON matching the schema."
+        }
+      },
+      "id": "5f6c3757-bcf4-4de8-94ab-7963f9dd8efd",
+      "name": "Decision Intelligence Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1880,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.25
+        }
+      },
+      "id": "323216c5-7af0-4868-ba3a-3a81a89afb1c",
+      "name": "Decision Intelligence Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1880,
+        620
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "lSWJ8UELlbsCTkDV",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"automotive_continuity\": {\n    \"recommended_candidate\": \"Dr. Helena Richter\",\n    \"rationale\": \"Her 18-year tenure and exceptional process focus directly address the team's need for stable, experienced leadership.\",\n    \"skill_gap_analysis\": \"Team lacks senior stakeholder management (5.7/10). Dr. Richter's score of 8 closes this gap and adds board-level representation.\",\n    \"trade_off\": \"Safest hire with minimal onboarding risk, but low innovation means transformation capability must be sourced elsewhere.\",\n    \"risks\": [\n      {\n        \"risk_type\": \"Innovation Ceiling\",\n        \"severity\": \"Medium\",\n        \"mitigation\": \"Pair with Chief Digital Officer for transformation initiatives\"\n      },\n      {\n        \"risk_type\": \"Succession Planning\",\n        \"severity\": \"Low\",\n        \"mitigation\": \"Begin developing internal candidates for eventual transition\"\n      }\n    ],\n    \"confidence_level\": \"High\",\n    \"alternatives\": [\n      {\n        \"candidate_name\": \"Thomas Weber\",\n        \"brief_rationale\": \"Internal candidate with fastest deployment but narrower stakeholder network\"\n      },\n      {\n        \"candidate_name\": \"Sarah Okonkwo\",\n        \"brief_rationale\": \"Strong all-rounder but higher cost for a continuity-focused scenario\"\n      }\n    ]\n  },\n  \"transformation\": {\n    \"recommended_candidate\": \"Marcus Chen\",\n    \"rationale\": \"Proven digital transformation leader who built Siemens Mobility's digital twin ecosystem.\",\n    \"skill_gap_analysis\": \"Team's low innovation (5.1) and risk-taking (4.3) are directly addressed by Chen's scores of 9 and 8 respectively.\",\n    \"trade_off\": \"Highest cost and longest onboarding, but unmatched transformation capability. Low process-focus may clash with existing team culture.\",\n    \"risks\": [\n      {\n        \"risk_type\": \"Cultural Integration\",\n        \"severity\": \"High\",\n        \"mitigation\": \"Structured 90-day integration plan with team leads\"\n      },\n      {\n        \"risk_type\": \"Extended Onboarding\",\n        \"severity\": \"Medium\",\n        \"mitigation\": \"Assign dedicated transition partner from current leadership\"\n      }\n    ],\n    \"confidence_level\": \"High\",\n    \"alternatives\": [\n      {\n        \"candidate_name\": \"Sarah Okonkwo\",\n        \"brief_rationale\": \"Broader leadership balance but less specialized in digital transformation\"\n      },\n      {\n        \"candidate_name\": \"Thomas Weber\",\n        \"brief_rationale\": \"Internal knowledge advantage but limited innovation drive\"\n      }\n    ]\n  },\n  \"supply_chain_crisis\": {\n    \"recommended_candidate\": \"Sarah Okonkwo\",\n    \"rationale\": \"Crisis-tested leader who managed Stellantis semiconductor shortage, reducing downtime by 40 percent.\",\n    \"skill_gap_analysis\": \"Team crisis resilience (6.8) needs reinforcement. Okonkwo's resilience of 9 and proven crisis track record directly address this.\",\n    \"trade_off\": \"Highest cost and 45-day onboarding may be too slow for active crisis. Thomas Weber offers faster deployment with slightly lower fit.\",\n    \"risks\": [\n      {\n        \"risk_type\": \"Onboarding Speed\",\n        \"severity\": \"High\",\n        \"mitigation\": \"Negotiate accelerated start date with pre-boarding materials\"\n      },\n      {\n        \"risk_type\": \"Cost Premium\",\n        \"severity\": \"Medium\",\n        \"mitigation\": \"Justify ROI through crisis risk reduction quantification\"\n      }\n    ],\n    \"confidence_level\": \"High\",\n    \"alternatives\": [\n      {\n        \"candidate_name\": \"Thomas Weber\",\n        \"brief_rationale\": \"Fastest deployment (7 days) and lowest cost when speed is the priority\"\n      },\n      {\n        \"candidate_name\": \"Dr. Helena Richter\",\n        \"brief_rationale\": \"Strong resilience and organizational knowledge but slower execution\"\n      }\n    ]\n  }\n}",
+        "autoFix": true
+      },
+      "id": "1d26d044-7f64-47ec-a80f-d559aef82aac",
+      "name": "Decision Intelligence Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2060,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Gather all agent outputs\nconst prepData = $('Prepare Data').first().json;\nconst jdOutput = $('JD Context Agent').first().json.output;\nconst cvOutput = $('CV Scoring Agent').first().json.output;\nconst decisionOutput = $('Decision Intelligence Agent').first().json.output;\nconst candidatePool = prepData.candidate_pool;\n\n// Map n8n scenario keys (underscore) → frontend keys (hyphen)\nconst keyMap = {\n  'automotive_continuity': 'automotive-continuity',\n  'transformation': 'transformation',\n  'supply_chain_crisis': 'supply-chain-crisis'\n};\n\n// Build frontend-compatible Candidate[] array\nconst candidates = cvOutput.scored_candidates.map(scored => {\n  const base = candidatePool.find(c => c.id === scored.id) || {};\n\n  const fitScores = {};\n  const riskScore = {};\n  const reasoning = {};\n\n  for (const [nKey, feKey] of Object.entries(keyMap)) {\n    fitScores[feKey] = scored.fitScores?.[nKey] ?? 50;\n    riskScore[feKey] = scored.riskScores?.[nKey] ?? 5;\n    reasoning[feKey] = scored.reasoning?.[nKey] ?? '';\n  }\n\n  return {\n    id: scored.id,\n    name: scored.name,\n    currentRole: base.current_role || '',\n    company: base.company || 'BMW Group',\n    yearsExperience: base.experience_years || 10,\n    avatarInitials: base.avatar_initials || scored.name.split(' ').map(w => w[0]).join(''),\n    traits: scored.traits,\n    fitScores,\n    timeToHire: base.time_to_hire || 30,\n    costToHire: base.cost_to_hire || 5,\n    riskScore,\n    reasoning,\n    isNew: base.is_new || false,\n    bio: base.bio || null\n  };\n});\n\n// Build decisions per scenario (frontend-friendly keys)\nconst decisions = {};\nfor (const [nKey, feKey] of Object.entries(keyMap)) {\n  const d = decisionOutput[nKey] || {};\n  decisions[feKey] = {\n    recommended_candidate: d.recommended_candidate || 'Unknown',\n    rationale: d.rationale || '',\n    trade_off: d.trade_off || '',\n    skill_gap_analysis: d.skill_gap_analysis || '',\n    risks: Array.isArray(d.risks) ? d.risks : [],\n    confidence_level: d.confidence_level || 'Medium',\n    alternatives: Array.isArray(d.alternatives) ? d.alternatives : []\n  };\n}\n\n// Build weights per scenario (frontend-friendly keys)\nconst weights = {};\nfor (const [nKey, feKey] of Object.entries(keyMap)) {\n  weights[feKey] = jdOutput[nKey]?.weights || {};\n}\n\n// Return the Master JSON\nreturn [{\n  json: {\n    status: \"success\",\n    data: {\n      candidates: candidates,\n      decisions: decisions,\n      weights: weights\n    }\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2340,
+        304
+      ],
+      "id": "f1a2b3c4-d5e6-7890-abcd-format000001",
+      "name": "Format Master Response"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2600,
+        304
+      ],
+      "id": "d1d079c7-741d-4810-ace3-562e6f1f519c",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Data": {
+      "main": [
+        [
+          {
+            "node": "JD Context Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JD Context Agent": {
+      "main": [
+        [
+          {
+            "node": "CV Scoring Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CV Scoring Agent": {
+      "main": [
+        [
+          {
+            "node": "Decision Intelligence Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision Intelligence Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Master Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Master Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JD Context Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "JD Context Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "JD Context Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JD Context Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "JD Context Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CV Scoring Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CV Scoring Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "CV Scoring Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CV Scoring Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "CV Scoring Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision Intelligence Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Decision Intelligence Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Decision Intelligence Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision Intelligence Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Decision Intelligence Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d1a2b3c4-e5f6-7890-abcd-ef1234567890",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b16e3a4194c36e9b194d6344b65c72c802e1b1515c7123f22668f20d3268087b"
+  },
+  "id": "uTSaxlkyA6WNHgZW",
+  "tags": []
+}

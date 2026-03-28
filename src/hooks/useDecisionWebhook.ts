@@ -1,23 +1,144 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
+import {
+  WEBHOOK_URL,
+  MasterResponse,
+  ScenarioDecision,
+  WebhookRisk,
+  WebhookAlternative,
+} from "@/lib/agentService";
+import { Candidate, Scenario } from "@/lib/types";
 
-export interface WebhookRisk {
-  risk_type: string;
-  severity: "High" | "Medium" | "Low";
-  mitigation: string;
-}
+export type { WebhookRisk, WebhookAlternative };
 
-export interface WebhookAlternative {
-  candidate_name: string;
-  brief_rationale: string;
-}
-
+// Re-export WebhookDecision shape for AiDecisionPanel compatibility
 export interface WebhookDecision {
   recommended_candidate: string;
   rationale: string;
   trade_off: string;
+  skill_gap_analysis: string;
   risks: WebhookRisk[];
   alternatives: WebhookAlternative[];
 }
+
+interface UseMasterWebhookReturn {
+  /** All candidates from AI pipeline (sorted per scenario) */
+  candidates: Candidate[] | null;
+  /** Decision for the currently selected scenario */
+  decision: WebhookDecision | null;
+  /** Full master response (all scenarios pre-computed) */
+  masterData: MasterResponse | null;
+  /** Loading state */
+  isLoading: boolean;
+  /** Error message if fetch failed */
+  error: string | null;
+  /** Trigger the full pipeline */
+  fetchAll: (roleId?: string) => Promise<void>;
+  /** Get decision for a specific scenario (from cached master data) */
+  getDecision: (scenario: Scenario) => WebhookDecision | null;
+  /** Get candidates sorted by a specific scenario (from cached master data) */
+  getCandidates: (scenario: Scenario) => Candidate[];
+}
+
+export function useMasterWebhook(): UseMasterWebhookReturn {
+  const [masterData, setMasterData] = useState<MasterResponse | null>(null);
+  const [candidates, setCandidates] = useState<Candidate[] | null>(null);
+  const [decision, setDecision] = useState<WebhookDecision | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const fetchAll = useCallback(async (roleId: string = "logistics_lead") => {
+    // Cancel any in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role_id: roleId }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+
+      const json = await response.json();
+      const data: MasterResponse = json.data || json;
+
+      // Validate response
+      if (!data.candidates || !Array.isArray(data.candidates)) {
+        throw new Error("Invalid response: missing candidates array");
+      }
+
+      setMasterData(data);
+      setCandidates(data.candidates);
+
+      // Set first available decision
+      const firstScenario = Object.keys(data.decisions || {})[0] as Scenario;
+      if (firstScenario && data.decisions[firstScenario]) {
+        const d = data.decisions[firstScenario];
+        setDecision({
+          recommended_candidate: d.recommended_candidate || "Unknown",
+          rationale: d.rationale || "",
+          trade_off: d.trade_off || "",
+          skill_gap_analysis: d.skill_gap_analysis || "",
+          risks: Array.isArray(d.risks) ? d.risks : [],
+          alternatives: Array.isArray(d.alternatives) ? d.alternatives : [],
+        });
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      setError(err instanceof Error ? err.message : "Failed to connect to AI Agent.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const getDecision = useCallback(
+    (scenario: Scenario): WebhookDecision | null => {
+      if (!masterData?.decisions?.[scenario]) return null;
+      const d = masterData.decisions[scenario];
+      return {
+        recommended_candidate: d.recommended_candidate || "Unknown",
+        rationale: d.rationale || "",
+        trade_off: d.trade_off || "",
+        skill_gap_analysis: d.skill_gap_analysis || "",
+        risks: Array.isArray(d.risks) ? d.risks : [],
+        alternatives: Array.isArray(d.alternatives) ? d.alternatives : [],
+      };
+    },
+    [masterData]
+  );
+
+  const getCandidates = useCallback(
+    (scenario: Scenario): Candidate[] => {
+      if (!masterData?.candidates) return [];
+      return [...masterData.candidates].sort(
+        (a, b) => (b.fitScores[scenario] || 0) - (a.fitScores[scenario] || 0)
+      );
+    },
+    [masterData]
+  );
+
+  return {
+    candidates,
+    decision,
+    masterData,
+    isLoading,
+    error,
+    fetchAll,
+    getDecision,
+    getCandidates,
+  };
+}
+
+// ── Legacy hook (backward-compatible) ──
 
 interface UseDecisionWebhookReturn {
   decision: WebhookDecision | null;
@@ -26,11 +147,9 @@ interface UseDecisionWebhookReturn {
   fetchDecision: (scenarioName: string) => Promise<void>;
 }
 
-const WEBHOOK_URL = "https://timatakky.app.n8n.cloud/webhook-test/b57e4f76-abce-44e4-82bb-150979c13861";
-
 const scenarioMap: Record<string, string> = {
   "automotive-continuity": "Business as Usual",
-  "transformation": "Digital Transformation",
+  transformation: "Digital Transformation",
   "supply-chain-crisis": "Supply Chain Crisis",
 };
 
@@ -58,21 +177,28 @@ export function useDecisionWebhook(): UseDecisionWebhookReturn {
       }
 
       const json = await response.json();
-
-      // Handle both wrapper and direct format
       const data = json.data || json;
 
       const parsed: WebhookDecision = {
         recommended_candidate: data.recommended_candidate || "Unknown",
-        rationale: data.rationale || "",
-        trade_off: data.trade_off || "",
-        risks: Array.isArray(data.risks) ? data.risks : [],
-        alternatives: Array.isArray(data.alternatives) ? data.alternatives : [],
+        rationale: data.rationale || data.recommendation_rationale || "",
+        trade_off: data.trade_off || data.trade_off_analysis || "",
+        skill_gap_analysis: data.skill_gap_analysis || "",
+        risks: Array.isArray(data.risks)
+          ? data.risks
+          : Array.isArray(data.risk_assessment)
+            ? data.risk_assessment
+            : [],
+        alternatives: Array.isArray(data.alternatives)
+          ? data.alternatives
+          : Array.isArray(data.alternative_candidates)
+            ? data.alternative_candidates
+            : [],
       };
 
       setDecision(parsed);
-    } catch (err: any) {
-      setError(err.message || "Failed to connect to AI Agent. Please try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to connect to AI Agent.");
     } finally {
       setIsLoading(false);
     }
