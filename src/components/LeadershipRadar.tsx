@@ -76,6 +76,20 @@ export function LeadershipRadar({ candidate, scenario }: LeadershipRadarProps) {
           </RadarChart>
         </ResponsiveContainer>
       </div>
+      
+      {/* Traits Breakdown */}
+      <div className="mt-6 grid grid-cols-2 gap-3 border-t pt-4">
+        {Object.entries(candidate.traits).map(([key, value]) => (
+          <div key={key} className="flex flex-col justify-center bg-muted/30 p-2 rounded-md border text-center">
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+              {traitLabels[key] || key}
+            </span>
+            <span className="text-lg font-bold text-foreground">
+              {value}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

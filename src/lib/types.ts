@@ -15,7 +15,6 @@ export interface Candidate {
   currentRole: string;
   company: string;
   yearsExperience: number;
-  source: "internal" | "external";
   avatarInitials: string;
   traits: LeadershipTraits;
   fitScores: Record<Scenario, number>;

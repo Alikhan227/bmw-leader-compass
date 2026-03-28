@@ -57,11 +57,6 @@ export function ReasoningPanel({ candidate, scenario }: ReasoningPanelProps) {
               value={`${candidate.timeToHire}d`}
               level={candidate.timeToHire <= 14 ? "high" : candidate.timeToHire <= 45 ? "mid" : "low"}
             />
-            <TradeoffCard
-              label="Source"
-              value={candidate.source === "internal" ? "Internal" : "External"}
-              level={candidate.source === "internal" ? "high" : "mid"}
-            />
           </div>
         </div>
 

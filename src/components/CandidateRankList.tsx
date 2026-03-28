@@ -57,7 +57,7 @@ export const CandidateRankList = memo(function CandidateRankList({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25, delay: idx * 0.05 }}
+            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
             role="option"
             aria-selected={selectedId === c.id}
             onClick={() => onSelect(c.id)}
@@ -80,9 +80,6 @@ export const CandidateRankList = memo(function CandidateRankList({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-semibold text-foreground truncate">{c.name}</h3>
-                  <Badge variant={c.source === "internal" ? "default" : "secondary"} className="text-[10px]">
-                    {c.source === "internal" ? "Internal" : "External"}
-                  </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground truncate">{c.currentRole}</p>
                 <p className="text-xs text-muted-foreground">{c.company} · {c.yearsExperience}y exp</p>
