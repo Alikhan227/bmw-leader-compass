@@ -1,181 +1,340 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Candidate } from "@/lib/types";
-import { LayoutGrid, List, ArrowDownWideNarrow } from "lucide-react";
-import { CandidateProfileView } from "./CandidateProfileView";
-import { AnimatePresence, motion } from "framer-motion";
+import { createManualCandidate } from "@/lib/manualCandidate";
+import { parseCvTextToCandidate } from "@/lib/parseCvTextToCandidate";
+import { extractPdfText } from "@/lib/extractPdfText";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
-interface TalentPoolTabProps {
+type TalentPoolTabProps = {
   candidates: Candidate[];
-}
+  onAddCandidate?: (candidate: Candidate) => void;
+};
 
-export function TalentPoolTab({ candidates }: TalentPoolTabProps) {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = useState<"name" | "experience">("name");
-  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
+export function TalentPoolTab({
+  candidates,
+  onAddCandidate,
+}: TalentPoolTabProps) {
+  const [manualOpen, setManualOpen] = useState(false);
+  const [cvOpen, setCvOpen] = useState(false);
+  const [isParsingPdf, setIsParsingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
-  const traitLabels: Record<string, string> = {
-    riskTaking: "Risk-Taking",
-    processFocus: "Process",
-    resilience: "Resilience",
-    innovation: "Innovation",
-    stakeholderManagement: "Stakeholder",
-    executionSpeed: "Execution",
-  };
+  const [name, setName] = useState("");
+  const [currentRole, setCurrentRole] = useState("");
+  const [company, setCompany] = useState("");
+  const [yearsExperience, setYearsExperience] = useState("5");
+  const [skills, setSkills] = useState("");
+  const [background, setBackground] = useState("");
+  const [timeToHire, setTimeToHire] = useState("30");
+  const [costToHire, setCostToHire] = useState("5");
+
+  const [cvCandidateName, setCvCandidateName] = useState("");
+  const [cvText, setCvText] = useState("");
+  const [cvTimeToHire, setCvTimeToHire] = useState("30");
+  const [cvCostToHire, setCvCostToHire] = useState("5");
 
   const sortedCandidates = useMemo(() => {
     return [...candidates].sort((a, b) => {
-      if (sortBy === "name") return a.name.localeCompare(b.name);
-      return b.yearsExperience - a.yearsExperience; // Descending experience
+      if (a.isNew && !b.isNew) return -1;
+      if (!a.isNew && b.isNew) return 1;
+      return a.name.localeCompare(b.name);
     });
-  }, [candidates, sortBy]);
+  }, [candidates]);
 
-  const selectedCandidate = useMemo(() => {
-    return candidates.find(c => c.id === selectedCandidateId) || null;
-  }, [candidates, selectedCandidateId]);
+  function resetManualForm() {
+    setName("");
+    setCurrentRole("");
+    setCompany("");
+    setYearsExperience("5");
+    setSkills("");
+    setBackground("");
+    setTimeToHire("30");
+    setCostToHire("5");
+  }
+
+  function resetCvForm() {
+    setCvCandidateName("");
+    setCvText("");
+    setCvTimeToHire("30");
+    setCvCostToHire("5");
+    setPdfError(null);
+    setIsParsingPdf(false);
+  }
+
+  function handleManualSubmit() {
+    if (!name.trim()) return;
+
+    const candidate = createManualCandidate({
+      name: name.trim(),
+      currentRole: currentRole.trim() || "Candidate",
+      company: company.trim() || "External Applicant",
+      yearsExperience: Number(yearsExperience) || 0,
+      skills: skills
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      background: background.trim(),
+      timeToHire: Number(timeToHire) || 30,
+      costToHire: Number(costToHire) || 5,
+    });
+
+    onAddCandidate?.(candidate);
+    resetManualForm();
+    setManualOpen(false);
+  }
+
+  function handleCvSubmit() {
+    if (!cvText.trim()) return;
+
+    const candidate = parseCvTextToCandidate({
+      cvText,
+      candidateName: cvCandidateName.trim() || undefined,
+      timeToHire: Number(cvTimeToHire) || 30,
+      costToHire: Number(cvCostToHire) || 5,
+    });
+
+    onAddCandidate?.(candidate);
+    resetCvForm();
+    setCvOpen(false);
+  }
+
+  async function handlePdfUpload(file: File | null) {
+    if (!file) return;
+
+    setPdfError(null);
+    setIsParsingPdf(true);
+
+    try {
+      const text = await extractPdfText(file);
+
+      if (!text.trim()) {
+        throw new Error("No readable text found in this PDF.");
+      }
+
+      setCvText(text);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to parse PDF.";
+      setPdfError(message);
+    } finally {
+      setIsParsingPdf(false);
+    }
+  }
 
   return (
-    <div className="w-full relative min-h-[600px]">
-      <AnimatePresence mode="wait">
-        
-        {selectedCandidateId && selectedCandidate ? (
-          
-          <CandidateProfileView 
-             key="profile-view" 
-             candidate={selectedCandidate} 
-             onBack={() => setSelectedCandidateId(null)} 
-          />
-          
-        ) : (
-          
-          <motion.div 
-            key="grid-view"
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6 pt-4 w-full"
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <p className="bmw-section-title">Talent Pool</p>
+          <p className="text-sm text-muted-foreground">
+            Review current candidates and add new profiles manually or from CV.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Dialog open={manualOpen} onOpenChange={setManualOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="uppercase tracking-wider font-semibold">
+                Add Candidate
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[640px]">
+              <DialogHeader>
+                <DialogTitle>Add Candidate</DialogTitle>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  placeholder="Full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+                <Input
+                  placeholder="Current role"
+                  value={currentRole}
+                  onChange={(e) => setCurrentRole(e.target.value)}
+                />
+                <Input
+                  placeholder="Company"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                />
+                <Input
+                  type="number"
+                  placeholder="Years of experience"
+                  value={yearsExperience}
+                  onChange={(e) => setYearsExperience(e.target.value)}
+                />
+                <Input
+                  type="number"
+                  placeholder="Time to hire (days)"
+                  value={timeToHire}
+                  onChange={(e) => setTimeToHire(e.target.value)}
+                />
+                <Input
+                  type="number"
+                  placeholder="Cost to hire (1-10)"
+                  value={costToHire}
+                  onChange={(e) => setCostToHire(e.target.value)}
+                />
+              </div>
+
+              <Input
+                placeholder="Skills (comma separated)"
+                value={skills}
+                onChange={(e) => setSkills(e.target.value)}
+              />
+
+              <Textarea
+                placeholder="Background / summary"
+                value={background}
+                onChange={(e) => setBackground(e.target.value)}
+                rows={5}
+              />
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    resetManualForm();
+                    setManualOpen(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleManualSubmit}>Save Candidate</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={cvOpen} onOpenChange={setCvOpen}>
+            <DialogTrigger asChild>
+              <Button className="uppercase tracking-wider font-semibold">
+                Add CV
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[720px]">
+              <DialogHeader>
+                <DialogTitle>Add Candidate from CV</DialogTitle>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                  placeholder="Candidate name (optional)"
+                  value={cvCandidateName}
+                  onChange={(e) => setCvCandidateName(e.target.value)}
+                />
+                <Input
+                  type="number"
+                  placeholder="Time to hire (days)"
+                  value={cvTimeToHire}
+                  onChange={(e) => setCvTimeToHire(e.target.value)}
+                />
+                <Input
+                  type="number"
+                  placeholder="Cost to hire (1-10)"
+                  value={cvCostToHire}
+                  onChange={(e) => setCvCostToHire(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Upload PDF CV</label>
+                <Input
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    void handlePdfUpload(file);
+                  }}
+                />
+                {isParsingPdf && (
+                  <p className="text-xs text-[#0066B1]">
+                    Parsing PDF and extracting text...
+                  </p>
+                )}
+                {pdfError && (
+                  <p className="text-xs text-red-500">{pdfError}</p>
+                )}
+              </div>
+
+              <Textarea
+                placeholder="CV text will appear here after upload, or paste text manually..."
+                value={cvText}
+                onChange={(e) => setCvText(e.target.value)}
+                rows={14}
+              />
+
+              <p className="text-xs text-muted-foreground">
+                This parses the PDF locally, converts it into candidate JSON, and adds it
+                to the Talent Pool without calling the AI pipeline yet.
+              </p>
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    resetCvForm();
+                    setCvOpen(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleCvSubmit} disabled={!cvText.trim() || isParsingPdf}>
+                  Parse CV & Add
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        {sortedCandidates.map((candidate) => (
+          <div
+            key={candidate.id}
+            className="border border-border/30 bg-card p-4 rounded-none space-y-2"
           >
-            {/* Controls Bar */}
-            <div className="flex items-center justify-between bg-card border border-border/40 p-3 rounded-none shadow-none">
-              <div className="flex items-center gap-3">
-                <ArrowDownWideNarrow className="w-4 h-4 text-muted-foreground ml-2" />
-                <span className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Sort By:</span>
-                <select 
-                  className="bg-[#0B1120] border border-border/40 text-sm text-foreground focus:ring-1 focus:ring-[#0066B1] outline-none cursor-pointer font-medium px-2 py-1 rounded-none"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as "name" | "experience")}
-                >
-                  <option value="name" className="bg-[#0B1120] text-slate-200">Alphabetical (A-Z)</option>
-                  <option value="experience" className="bg-[#0B1120] text-slate-200">Years of Experience</option>
-                </select>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-base">{candidate.name}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {candidate.currentRole} · {candidate.company}
+                </p>
               </div>
 
-              <div className="flex items-center gap-1 bg-black p-1 rounded-none border border-white/10">
-                <button 
-                  onClick={() => setViewMode("grid")}
-                  className={`p-1.5 rounded-none transition-all ${viewMode === "grid" ? "bg-[#0066B1] text-white" : "text-muted-foreground hover:text-white"}`}
-                  aria-label="Grid View"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-                <button 
-                  onClick={() => setViewMode("list")}
-                  className={`p-1.5 rounded-none transition-all ${viewMode === "list" ? "bg-[#0066B1] text-white" : "text-muted-foreground hover:text-white"}`}
-                  aria-label="List View"
-                >
-                  <List className="w-4 h-4" />
-                </button>
+              {candidate.isNew && (
+                <span className="text-[10px] px-2 py-1 border border-red-500/30 bg-red-500/10 text-red-400 uppercase tracking-widest font-bold">
+                  New
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+              <div>Experience: {candidate.yearsExperience} yrs</div>
+              <div>Time to hire: {candidate.timeToHire} days</div>
+              <div>Cost to hire: {candidate.costToHire}/10</div>
+              <div>
+                Top fit:{" "}
+                {Math.max(
+                  candidate.fitScores?.["automotive-continuity"] || 0,
+                  candidate.fitScores?.transformation || 0,
+                  candidate.fitScores?.["supply-chain-crisis"] || 0
+                )}
               </div>
             </div>
-
-            {/* Candidate Grid/List */}
-            <div className={viewMode === "grid" ? "grid grid-cols-1 xl:grid-cols-2 gap-8" : "flex flex-col gap-6"}>
-              {sortedCandidates.map((c) => (
-                <div 
-                  key={c.id} 
-                  onClick={() => setSelectedCandidateId(c.id)}
-                  className="cursor-pointer rounded-none border border-[#333333] bg-[#0A0A0A] hover:border-[#0066B1] transition-colors p-8 relative group shadow-none"
-                >
-                  
-                  {/* New Application Indicator */}
-                  {c.isNew && (
-                    <div className="absolute top-8 right-8 flex items-center gap-2">
-                      <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-bmw-danger bg-bmw-danger/10 px-2 py-0.5 rounded-none border border-bmw-danger/30">New</span>
-                      <span className="relative flex h-2.5 w-2.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-bmw-danger opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-bmw-danger"></span>
-                      </span>
-                    </div>
-                  )}
-
-                  <div className={`flex ${viewMode === "list" ? "flex-row items-center justify-between gap-12" : "flex-col items-start"}`}>
-                    
-                    {/* Header info */}
-                    <div className={`flex items-start gap-5 ${viewMode === "list" ? "w-1/3" : "mb-6"}`}>
-                      <div className="w-16 h-16 shrink-0 rounded-none bg-[#111111] border border-[#333333] flex items-center justify-center font-bold text-xl text-white group-hover:bg-[#0066B1]/10 transition-colors">
-                        {c.avatarInitials}
-                      </div>
-                      <div className="mt-1">
-                        <h3 className="font-semibold text-xl leading-tight text-white mb-1.5 group-hover:text-[#0066B1] transition-colors">{c.name}</h3>
-                        <p className="text-sm text-muted-foreground mb-1.5 uppercase tracking-widest text-[10px] font-bold">{c.currentRole}</p>
-                        <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-[0.2em]">{c.company} • {c.yearsExperience} EXP</p>
-                      </div>
-                    </div>
-
-                    {/* Trait Analysis Bars */}
-                    <div className={`${viewMode === "list" ? "flex-1 border-l border-border/40 pl-12" : "w-full pt-6 border-t border-border/40"}`}>
-                      <div className="flex items-center justify-between mb-4">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Trait Breakdown</p>
-                      </div>
-                      <div className={`grid ${viewMode === "list" ? "grid-cols-3" : "grid-cols-2"} gap-x-6 gap-y-4`}>
-                        {Object.entries(c.traits).map(([key, val]) => (
-                          <div key={key}>
-                            <div className="flex justify-between items-end mb-1.5">
-                              <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{traitLabels[key] || key}</span>
-                              <span className="text-[10px] font-bold text-emerald-400">{val}/10</span>
-                            </div>
-                            <div className="w-full h-1 bg-[#222222] rounded-none overflow-hidden">
-                              <div 
-                                className="h-full bg-[#0066B1] transition-all duration-1000 ease-out flex" 
-                                style={{ width: `${(val / 10) * 100}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {viewMode === "list" && (
-                        <div className="mt-6 pt-5 flex items-center gap-8 border-t border-[#333333]">
-                          <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Rel. Cost: <span className="text-white">{c.costToHire}/10</span></span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Deploy: <span className="text-white">{c.timeToHire} days</span></span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Footer metrics (Grid only to save space, list mode incorporates it above) */}
-                    {viewMode === "grid" && (
-                      <div className="w-full mt-8 pt-5 border-t border-[#333333] flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Rel. Cost: <span className="text-white">{c.costToHire}/10</span></span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Deploy: <span className="text-white">{c.timeToHire} days</span></span>
-                          </div>
-                      </div>
-                    )}
-                    
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-          
-        )}
-      </AnimatePresence>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

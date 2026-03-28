@@ -22,8 +22,8 @@ export default function Index() {
   const [selectedVacancyId, setSelectedVacancyId] = useState<string | null>(null);
   const [scenario, setScenario] = useState<Scenario>("automotive-continuity");
   const [selectedId, setSelectedId] = useState<string | null>("c1");
+  const [manualCandidates, setManualCandidates] = useState<Candidate[]>([]);
 
-  // ── AI Pipeline (Master JSON) ──
   const {
     masterData,
     isLoading: aiLoading,
@@ -33,11 +33,23 @@ export default function Index() {
     getCandidates,
   } = useMasterWebhook();
 
-  // Use AI candidates if available, otherwise mock data
-  const liveCandidates = masterData ? getCandidates(scenario) : null;
-  const candidates = liveCandidates || rankCandidates(mockCandidates, scenario);
+  // Local candidates = mock + manually added
+  const localCandidates = useMemo(
+    () => [...mockCandidates, ...manualCandidates],
+    [manualCandidates]
+  );
 
-  // Current decision for AiDecisionPanel
+  // Live candidates from webhook
+  const liveCandidates = masterData ? getCandidates(scenario) : null;
+
+  // If we have live data, keep it as base and append manual candidates locally
+  const candidates = useMemo(() => {
+    if (liveCandidates) {
+      return [...liveCandidates, ...manualCandidates];
+    }
+    return rankCandidates(localCandidates, scenario);
+  }, [liveCandidates, manualCandidates, localCandidates, scenario]);
+
   const currentDecision = masterData ? getDecision(scenario) : null;
 
   const selectedCandidate = useMemo(
@@ -50,26 +62,25 @@ export default function Index() {
     [selectedVacancyId]
   );
 
-  // ── Trigger AI pipeline when entering dashboard ──
+  // Trigger AI pipeline only once on first dashboard entry, unless user retries manually
   useEffect(() => {
-    if (screen === "dashboard" && !masterData && !aiLoading) {
+    if (screen === "dashboard" && !masterData && !aiLoading && !aiError) {
       fetchAll("logistics_lead");
     }
-  }, [screen, masterData, aiLoading, fetchAll]);
+  }, [screen, masterData, aiLoading, aiError, fetchAll]);
 
-  // ── When scenario changes and we have AI data, re-sort candidates ──
   const handleScenarioChange = useCallback(
     (s: Scenario) => {
       setScenario(s);
-      // Select the top candidate for the new scenario
-      const newCandidates = masterData
-        ? getCandidates(s)
-        : rankCandidates(mockCandidates, s);
+      const newCandidates = liveCandidates
+        ? [...getCandidates(s), ...manualCandidates]
+        : rankCandidates([...mockCandidates, ...manualCandidates], s);
+
       if (newCandidates.length > 0) {
         setSelectedId(newCandidates[0].id);
       }
     },
-    [masterData, getCandidates]
+    [liveCandidates, getCandidates, manualCandidates]
   );
 
   const handleLoginComplete = useCallback(() => {
@@ -102,6 +113,16 @@ export default function Index() {
   const handleRetryAi = useCallback(() => {
     fetchAll("logistics_lead");
   }, [fetchAll]);
+
+  const handleAddCandidate = useCallback((candidate: Candidate) => {
+    setManualCandidates((prev) => {
+      const exists = prev.some((c) => c.id === candidate.id);
+      if (exists) return prev;
+      return [...prev, candidate];
+    });
+
+    setSelectedId(candidate.id);
+  }, []);
 
   return (
     <AnimatePresence mode="wait">
@@ -139,7 +160,6 @@ export default function Index() {
           <DashboardHeader onLogout={handleBackToVacancyDetail} />
 
           <main className="container px-6 py-6 space-y-6">
-            {/* AI Status Banner */}
             {aiLoading && (
               <div className="bg-[#0066B1]/10 border border-[#0066B1]/30 rounded-none p-3 flex items-center gap-3">
                 <div className="w-4 h-4 border-2 border-[#0066B1] border-t-transparent rounded-full animate-spin" />
@@ -148,6 +168,7 @@ export default function Index() {
                 </p>
               </div>
             )}
+
             {aiError && !masterData && (
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-none p-3 flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-widest text-yellow-400">
@@ -161,6 +182,7 @@ export default function Index() {
                 </button>
               </div>
             )}
+
             {masterData && (
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-none p-3 flex items-center gap-3">
                 <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
@@ -198,27 +220,16 @@ export default function Index() {
               </div>
 
               <TabsContent value="decision" className="space-y-6 mt-0">
-                {/* Scenario Selector */}
                 <section aria-label="Scenario Selection">
                   <p className="bmw-section-title mb-2">
                     Context Agent — Select Business Scenario
                   </p>
-                  <ScenarioToggle
-                    active={scenario}
-                    onChange={handleScenarioChange}
-                  />
+                  <ScenarioToggle active={scenario} onChange={handleScenarioChange} />
                 </section>
 
-                {/* Main Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                  {/* Left: Candidate Rankings */}
-                  <section
-                    className="lg:col-span-5 space-y-2"
-                    aria-label="Candidate Rankings"
-                  >
-                    <p className="bmw-section-title">
-                      CV Agent — Candidate Ranking
-                    </p>
+                  <section className="lg:col-span-5 space-y-2" aria-label="Candidate Rankings">
+                    <p className="bmw-section-title">CV Agent — Candidate Ranking</p>
                     <CandidateRankList
                       candidates={candidates}
                       scenario={scenario}
@@ -227,24 +238,16 @@ export default function Index() {
                     />
                   </section>
 
-                  {/* Right: Detail Panel */}
-                  <section
-                    className="lg:col-span-7 space-y-4"
-                    aria-label="Candidate Details"
-                  >
+                  <section className="lg:col-span-7 space-y-4" aria-label="Candidate Details">
                     <LeadershipRadar
                       candidate={selectedCandidate}
                       scenario={scenario}
                       team={selectedVacancy?.team}
                     />
-                    <ReasoningPanel
-                      candidate={selectedCandidate}
-                      scenario={scenario}
-                    />
+                    <ReasoningPanel candidate={selectedCandidate} scenario={scenario} />
                   </section>
                 </div>
 
-                {/* AI Decision Panel (from Decision Intelligence Agent) */}
                 <section aria-label="AI Decision Intelligence">
                   <p className="bmw-section-title mb-2">
                     Decision Intelligence Agent
@@ -259,7 +262,10 @@ export default function Index() {
               </TabsContent>
 
               <TabsContent value="pool" className="mt-0 outline-none">
-                <TalentPoolTab candidates={candidates} />
+                <TalentPoolTab
+                  candidates={candidates}
+                  onAddCandidate={handleAddCandidate}
+                />
               </TabsContent>
             </Tabs>
           </main>
