@@ -1,22 +1,30 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Scenario } from "@/lib/types";
-import { candidates } from "@/lib/data";
+import { candidates, vacancies } from "@/lib/data";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { ScenarioToggle } from "@/components/ScenarioToggle";
 import { CandidateRankList } from "@/components/CandidateRankList";
 import { LeadershipRadar } from "@/components/LeadershipRadar";
 import { ReasoningPanel } from "@/components/ReasoningPanel";
 import { LoginScreen } from "@/components/LoginScreen";
+import { VacancyListScreen } from "@/components/VacancyListScreen";
+import { VacancyDetailPage } from "@/components/VacancyDetailPage";
 import { TalentPoolTab } from "@/components/TalentPoolTab";
+import { AiDecisionPanel } from "@/components/AiDecisionPanel";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AnimatePresence, motion } from "framer-motion";
+import { useDecisionWebhook } from "@/hooks/useDecisionWebhook";
 
 import { rankCandidates } from "@/lib/data";
 
+type AppScreen = "login" | "vacancies" | "vacancy-detail" | "dashboard";
+
 export default function Index() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [screen, setScreen] = useState<AppScreen>("login");
+  const [selectedVacancyId, setSelectedVacancyId] = useState<string | null>(null);
   const [scenario, setScenario] = useState<Scenario>("automotive-continuity");
   const [selectedId, setSelectedId] = useState<string | null>("c1");
+  const { decision, isLoading: aiLoading, error: aiError, fetchDecision } = useDecisionWebhook();
 
   const ranked = useMemo(() => rankCandidates(candidates, scenario), [scenario]);
   
@@ -25,26 +33,78 @@ export default function Index() {
     [selectedId, ranked]
   );
 
+  const selectedVacancy = useMemo(
+    () => vacancies.find((v) => v.id === selectedVacancyId) ?? null,
+    [selectedVacancyId]
+  );
+
   const handleScenarioChange = useCallback((s: Scenario) => {
     setScenario(s);
-    // Auto-select the top candidate for the new scenario
     const newRanked = rankCandidates(candidates, s);
     setSelectedId(newRanked[0].id);
   }, []);
 
+  const handleLoginComplete = useCallback(() => {
+    setScreen("vacancies");
+  }, []);
+
+  const handleVacancySelect = useCallback((id: string) => {
+    setSelectedVacancyId(id);
+    setScreen("vacancy-detail");
+  }, []);
+
+  const handleAnalyze = useCallback(() => {
+    setScreen("dashboard");
+  }, []);
+
+  const handleBackToLogin = useCallback(() => {
+    setScreen("login");
+    setSelectedVacancyId(null);
+  }, []);
+
+  const handleBackToVacancies = useCallback(() => {
+    setScreen("vacancies");
+    setSelectedVacancyId(null);
+  }, []);
+
+  const handleBackToVacancyDetail = useCallback(() => {
+    setScreen("vacancy-detail");
+  }, []);
+
   return (
     <AnimatePresence mode="wait">
-      {!isAuthenticated ? (
-        <LoginScreen key="login" onComplete={() => setIsAuthenticated(true)} />
-      ) : (
+      {screen === "login" && (
+        <LoginScreen key="login" onComplete={handleLoginComplete} />
+      )}
+
+      {screen === "vacancies" && (
+        <VacancyListScreen 
+          key="vacancies" 
+          vacancies={vacancies} 
+          onSelect={handleVacancySelect} 
+          onBack={handleBackToLogin} 
+        />
+      )}
+
+      {screen === "vacancy-detail" && selectedVacancy && (
+        <VacancyDetailPage
+          key="vacancy-detail"
+          vacancy={selectedVacancy}
+          onBack={handleBackToVacancies}
+          onAnalyze={handleAnalyze}
+        />
+      )}
+
+      {screen === "dashboard" && (
         <motion.div 
           key="dashboard"
           initial={{ opacity: 0, filter: "blur(10px)", scale: 0.95 }}
           animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+          exit={{ opacity: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="min-h-screen bg-background"
         >
-          <DashboardHeader onLogout={() => setIsAuthenticated(false)} />
+          <DashboardHeader onLogout={handleBackToVacancyDetail} />
 
       <main className="container px-6 py-6 space-y-6">
         <Tabs defaultValue="decision" className="w-full">
@@ -60,6 +120,10 @@ export default function Index() {
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-bmw-danger"></span>
                   </span>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="ai-agent" className="text-xs px-6 py-2.5 uppercase tracking-wider font-semibold flex items-center gap-2">
+                AI Agent
+                <span className="w-1.5 h-1.5 bg-[#0066B1] rounded-none animate-pulse"></span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -86,10 +150,23 @@ export default function Index() {
 
           {/* Right: Detail Panel */}
           <section className="lg:col-span-7 space-y-4" aria-label="Candidate Details">
-              <LeadershipRadar candidate={selectedCandidate} scenario={scenario} />
+              <LeadershipRadar candidate={selectedCandidate} scenario={scenario} team={selectedVacancy?.team} />
             <ReasoningPanel candidate={selectedCandidate} scenario={scenario} />
           </section>
         </div>
+          </TabsContent>
+
+          <TabsContent value="ai-agent" className="space-y-6 mt-0">
+            <section aria-label="Scenario Selection">
+              <p className="bmw-section-title mb-2">AI Agent — Select Business Scenario</p>
+              <ScenarioToggle active={scenario} onChange={(s) => { setScenario(s); fetchDecision(s); }} />
+            </section>
+            <AiDecisionPanel
+              decision={decision}
+              isLoading={aiLoading}
+              error={aiError}
+              onRetry={() => fetchDecision(scenario)}
+            />
           </TabsContent>
 
           <TabsContent value="pool" className="mt-0 outline-none">

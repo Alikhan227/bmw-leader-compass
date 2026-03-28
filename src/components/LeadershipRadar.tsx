@@ -1,4 +1,4 @@
-import { Candidate, Scenario } from "@/lib/types";
+import { Candidate, Scenario, TeamMember, LeadershipTraits } from "@/lib/types";
 import { getScenarioConfig, candidates } from "@/lib/data";
 import {
   RadarChart,
@@ -17,6 +17,7 @@ import { ChevronDown } from "lucide-react";
 interface LeadershipRadarProps {
   candidate: Candidate;
   scenario: Scenario;
+  team?: TeamMember[];
 }
 
 const traitLabels: Record<string, string> = {
@@ -28,17 +29,42 @@ const traitLabels: Record<string, string> = {
   executionSpeed: "Execution Speed",
 };
 
-export function LeadershipRadar({ candidate, scenario }: LeadershipRadarProps) {
+export function LeadershipRadar({ candidate, scenario, team }: LeadershipRadarProps) {
   const config = getScenarioConfig(scenario);
   const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showTeam, setShowTeam] = useState(false);
   const compareCandidates = candidates.filter(c => compareIds.includes(c.id));
+
+  const teamAvgTraits = useMemo(() => {
+    if (!team || team.length === 0) return null;
+    const keys = Object.keys(team[0].traits) as (keyof LeadershipTraits)[];
+    const avg: Partial<LeadershipTraits> = {};
+    keys.forEach((k) => {
+      avg[k] = Math.round((team.reduce((sum, m) => sum + m.traits[k], 0) / team.length) * 10) / 10;
+    });
+    return avg as LeadershipTraits;
+  }, [team]);
+
+  const maxCandidates = showTeam ? 1 : 2;
 
   const toggleCompare = (id: string, e: Event) => {
     e.preventDefault();
     setCompareIds(prev => {
       if (prev.includes(id)) return prev.filter(i => i !== id);
-      if (prev.length >= 2) return prev; // Max 2
+      if (prev.length >= maxCandidates) return prev;
       return [...prev, id];
+    });
+  };
+
+  const toggleTeam = (e: Event) => {
+    e.preventDefault();
+    setShowTeam(prev => {
+      const next = !prev;
+      // If enabling team, trim candidates to max 1
+      if (next && compareIds.length > 1) {
+        setCompareIds(ids => ids.slice(0, 1));
+      }
+      return next;
     });
   };
 
@@ -53,10 +79,16 @@ export function LeadershipRadar({ candidate, scenario }: LeadershipRadarProps) {
       compareCandidates.forEach((c, index) => {
         point[`compare_${index}`] = c.traits[key as keyof typeof c.traits];
       });
+
+      if (showTeam && teamAvgTraits) {
+        point.teamAvg = teamAvgTraits[key as keyof LeadershipTraits];
+      }
       
       return point;
     });
-  }, [candidate, config, compareCandidates]);
+  }, [candidate, config, compareCandidates, showTeam, teamAvgTraits]);
+
+  const totalCompareSlots = compareIds.length + (showTeam ? 1 : 0);
 
   return (
     <div className="bmw-card p-4">
@@ -67,13 +99,26 @@ export function LeadershipRadar({ candidate, scenario }: LeadershipRadarProps) {
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 text-xs w-[140px] justify-between bg-sidebar">
-              {compareIds.length === 0 ? "Compare with..." : `${compareIds.length} Selected`}
+            <Button variant="outline" size="sm" className="h-8 text-xs w-[160px] justify-between bg-sidebar">
+              {totalCompareSlots === 0 ? "Compare with..." : `${totalCompareSlots} Selected`}
               <ChevronDown className="h-4 w-4 opacity-50" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[200px]">
-            <DropdownMenuLabel className="text-xs">Compare Candidates (Max 2)</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-[220px]">
+            {team && team.length > 0 && (
+              <>
+                <DropdownMenuLabel className="text-xs">Team</DropdownMenuLabel>
+                <DropdownMenuCheckboxItem
+                  checked={showTeam}
+                  onSelect={(e) => toggleTeam(e)}
+                  className="text-xs"
+                >
+                  ⬡ Team Average
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            <DropdownMenuLabel className="text-xs">Candidates (Max {maxCandidates})</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {candidates
               .filter(c => c.id !== candidate.id)
@@ -82,7 +127,7 @@ export function LeadershipRadar({ candidate, scenario }: LeadershipRadarProps) {
                   key={c.id}
                   checked={compareIds.includes(c.id)}
                   onSelect={(e) => toggleCompare(c.id, e)}
-                  disabled={!compareIds.includes(c.id) && compareIds.length >= 2}
+                  disabled={!compareIds.includes(c.id) && compareIds.length >= maxCandidates}
                   className="text-xs"
                 >
                   {c.name}
@@ -122,12 +167,23 @@ export function LeadershipRadar({ candidate, scenario }: LeadershipRadarProps) {
               strokeWidth={1.5}
               strokeDasharray="4 4"
             />
+            {showTeam && teamAvgTraits && (
+              <Radar
+                name="Team Average"
+                dataKey="teamAvg"
+                stroke="#10b981"
+                fill="#10b981"
+                fillOpacity={0.15}
+                strokeWidth={2}
+                strokeDasharray="6 3"
+              />
+            )}
             {compareCandidates[0] && (
               <Radar
                 name={compareCandidates[0].name}
                 dataKey="compare_0"
-                stroke="#10b981"
-                fill="#10b981"
+                stroke="#f43f5e"
+                fill="#f43f5e"
                 fillOpacity={0.25}
                 strokeWidth={2}
               />
@@ -152,11 +208,11 @@ export function LeadershipRadar({ candidate, scenario }: LeadershipRadarProps) {
       {/* Traits Breakdown */}
       <div className="mt-6 grid grid-cols-2 gap-3 border-t pt-4">
         {Object.entries(candidate.traits).map(([key, value]) => (
-          <div key={key} className="flex flex-col justify-center bg-muted/30 p-2 rounded-md border text-center">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">
+          <div key={key} className="flex flex-col justify-center bg-[#111111] p-2 rounded-none border border-[#333333] text-center">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
               {traitLabels[key] || key}
             </span>
-            <span className="text-lg font-bold text-foreground">
+            <span className="text-lg font-bold text-white">
               {value}
             </span>
           </div>

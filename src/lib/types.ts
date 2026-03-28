@@ -39,3 +39,29 @@ export interface ScenarioConfig {
   icon: string;
   weights: LeadershipTraits;
 }
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  avatarInitials: string;
+  traits: LeadershipTraits;
+}
+
+export type VacancyStatus = "active" | "closed" | "draft";
+
+export interface Vacancy {
+  id: string;
+  title: string;
+  department: string;
+  location: string;
+  locationType: "remote" | "in-person" | "hybrid";
+  employmentType: "full-time" | "part-time" | "contract";
+  salaryRange: string;
+  applicantCount: number;
+  status: VacancyStatus;
+  description: string;
+  team: TeamMember[];
+  teamGaps: string[];
+  teamAiOverview: string;
+}
