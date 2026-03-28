@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Scenario } from "@/lib/types";
 import { candidates, vacancies } from "@/lib/data";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -10,10 +10,8 @@ import { LoginScreen } from "@/components/LoginScreen";
 import { VacancyListScreen } from "@/components/VacancyListScreen";
 import { VacancyDetailPage } from "@/components/VacancyDetailPage";
 import { TalentPoolTab } from "@/components/TalentPoolTab";
-import { AiDecisionPanel } from "@/components/AiDecisionPanel";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AnimatePresence, motion } from "framer-motion";
-import { useDecisionWebhook } from "@/hooks/useDecisionWebhook";
 
 import { rankCandidates } from "@/lib/data";
 
@@ -24,7 +22,6 @@ export default function Index() {
   const [selectedVacancyId, setSelectedVacancyId] = useState<string | null>(null);
   const [scenario, setScenario] = useState<Scenario>("automotive-continuity");
   const [selectedId, setSelectedId] = useState<string | null>("c1");
-  const { decision, isLoading: aiLoading, error: aiError, fetchDecision } = useDecisionWebhook();
 
   const ranked = useMemo(() => rankCandidates(candidates, scenario), [scenario]);
   
@@ -121,10 +118,6 @@ export default function Index() {
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="ai-agent" className="text-xs px-6 py-2.5 uppercase tracking-wider font-semibold flex items-center gap-2">
-                AI Agent
-                <span className="w-1.5 h-1.5 bg-[#0066B1] rounded-none animate-pulse"></span>
-              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -154,19 +147,6 @@ export default function Index() {
             <ReasoningPanel candidate={selectedCandidate} scenario={scenario} />
           </section>
         </div>
-          </TabsContent>
-
-          <TabsContent value="ai-agent" className="space-y-6 mt-0">
-            <section aria-label="Scenario Selection">
-              <p className="bmw-section-title mb-2">AI Agent — Select Business Scenario</p>
-              <ScenarioToggle active={scenario} onChange={(s) => { setScenario(s); fetchDecision(s); }} />
-            </section>
-            <AiDecisionPanel
-              decision={decision}
-              isLoading={aiLoading}
-              error={aiError}
-              onRetry={() => fetchDecision(scenario)}
-            />
           </TabsContent>
 
           <TabsContent value="pool" className="mt-0 outline-none">
