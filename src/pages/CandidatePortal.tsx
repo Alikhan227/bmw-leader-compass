@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { supabase, insertCandidateSubmission } from "@/lib/supabase";
 import { useSearchParams } from "react-router-dom";
 
 const SKILLS = [
@@ -116,6 +116,7 @@ export default function CandidatePortal() {
   const [availability, setAvailability] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [currentRole, setCurrentRole] = useState("");
   const [company, setCompany] = useState("");
 
@@ -150,13 +151,15 @@ export default function CandidatePortal() {
         .map((n) => n[0]?.toUpperCase() ?? "")
         .join("");
 
-      const candidateData = {
+      const submissionData = {
+        vacancy_id: selectedVacancyId || "v1",
+        submission_source: "candidate_portal" as const,
+        status: "ready" as const,
         full_name: fullName || "New Candidate",
+        email: email,
         current_job_title: currentRole,
         company: company,
         experience_years: Number(experience),
-        vacancy_id: selectedVacancyId || "v1",
-        submission_source: "candidate_portal", 
         avatar_initials: initials,
         skills_json: selectedSkills,
         time_to_hire: availability !== null ? availability : 30,
@@ -167,7 +170,7 @@ export default function CandidatePortal() {
         innovation: 5,
         stakeholder_management: 5,
         execution_speed: 5,
-        background: `Candidate added via portal for ${VACANCIES.find(v => v.id === selectedVacancyId)?.title || "General Position"}. Expertise: ${selectedSkills.join(", ")}`,
+        background: `Candidate added via portal for ${VACANCIES.find(v => v.id === selectedVacancyId)?.title || "General Position"}. expertise: ${selectedSkills.join(", ")}`,
         cv_text: JSON.stringify({
           original_cv_filename: file?.name || "Manual Upload",
           skills: selectedSkills,
@@ -177,11 +180,7 @@ export default function CandidatePortal() {
         }, null, 2)
       };
 
-      const { error } = await supabase
-        .from("candidate_submissions")
-        .insert([candidateData]);
-
-      if (error) throw error;
+      await insertCandidateSubmission(submissionData);
       
       setIsSubmitted(true);
       toast.success("Application submitted successfully!");
@@ -358,6 +357,16 @@ export default function CandidatePortal() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <label className="text-[9px] uppercase tracking-[0.3em] font-bold text-muted-foreground ml-1">Email Address</label>
+                  <input 
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="ENTER OFFICIAL EMAIL"
+                    className="w-full bg-transparent border-b border-[#222222] py-3 px-1 text-sm font-bold tracking-[0.1em] focus:outline-none focus:border-[#0066B1] transition-colors placeholder:opacity-20"
+                  />
+                </div>
+                <div className="space-y-2">
                   <label className="text-[9px] uppercase tracking-[0.3em] font-bold text-muted-foreground ml-1">Current Role</label>
                   <input 
                     type="text" 
@@ -381,7 +390,7 @@ export default function CandidatePortal() {
 
                 <Button 
                   className="w-full rounded-none h-14 bg-white text-black font-bold tracking-[0.3em] text-[10px] uppercase hover:bg-[#0066B1] hover:text-white transition-all disabled:opacity-20"
-                  disabled={!file || !fullName || !currentRole}
+                  disabled={!file || !fullName || !currentRole || !email}
                   onClick={() => setStep(2)}
                 >
                   Confirm & Procede <ChevronRight className="ml-2 w-4 h-4" />
