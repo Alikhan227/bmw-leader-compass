@@ -8,11 +8,11 @@ import { Candidate, Scenario, LeadershipTraits } from "./types";
 
 export const WEBHOOK_URL =
   import.meta.env.VITE_WEBHOOK_URL ||
-  "https://timatakky.app.n8n.cloud/webhook/b57e4f76-abce-44e4-82bb-150979c13861";
+  "https://tmuzhikbay3.app.n8n.cloud/webhook/b57e4f76-abce-44e4-82bb-150979c13861";
 
 // Direct n8n URL (for production or when not using Vite proxy):
 export const WEBHOOK_DIRECT_URL =
-  "https://timatakky.app.n8n.cloud/webhook/b57e4f76-abce-44e4-82bb-150979c13861";
+  "https://tmuzhikbay3.app.n8n.cloud/webhook/b57e4f76-abce-44e4-82bb-150979c13861";
 
 export const HR_WEBHOOK_URL =
   import.meta.env.VITE_HR_WEBHOOK_URL || "/api/n8n/hr-plans-upload";

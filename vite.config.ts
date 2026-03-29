@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => ({
     },
     proxy: {
       "/api/n8n": {
-        target: "https://timatakky.app.n8n.cloud",
+        target: "https://tmuzhikbay3.app.n8n.cloud",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/n8n/, "/webhook"),
         secure: true,
