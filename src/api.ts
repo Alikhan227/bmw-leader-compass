@@ -1,6 +1,15 @@
 const WEBHOOK_URL = "https://timatakky.app.n8n.cloud/webhook-test/b57e4f76-abce-44e4-82bb-150979c13861";
 
-export async function fetchAnalysis(payload: Record<string, unknown> = {}) {
+export type WebhookResponse = {
+  status: string;
+  data: {
+    candidates: any[];
+    decisions: Record<string, any>;
+    weights: Record<string, any>;
+  };
+};
+
+export async function fetchAnalysis(payload: Record<string, unknown> = {}): Promise<WebhookResponse> {
   const response = await fetch(WEBHOOK_URL, {
     method: "POST",
     headers: {

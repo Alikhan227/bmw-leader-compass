@@ -14,10 +14,12 @@ import { AiDecisionPanel } from "@/components/AiDecisionPanel";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMasterWebhook } from "@/hooks/useDecisionWebhook";
+import { useCandidatesDB } from "@/hooks/useCandidatesDB";
 
 type AppScreen = "login" | "vacancies" | "vacancy-detail" | "dashboard";
 
 export default function Index() {
+  const { candidates: dbCandidates } = useCandidatesDB();
   const [screen, setScreen] = useState<AppScreen>("login");
   const [selectedVacancyId, setSelectedVacancyId] = useState<string | null>(null);
   const [scenario, setScenario] = useState<Scenario>("automotive-continuity");
@@ -34,21 +36,72 @@ export default function Index() {
   } = useMasterWebhook();
 
   // Local candidates = mock + manually added
-  const localCandidates = useMemo(
-    () => [...mockCandidates, ...manualCandidates],
-    [manualCandidates]
-  );
+  const localCandidates = manualCandidates;
+  const webhookCandidates = useMemo(() => {
+  const defaultMapped = mockCandidates.map((c) => ({
+    id: c.id,
+    name: c.name,
+    current_role: c.currentRole,
+    company: c.company,
+    experience_years: c.yearsExperience,
+    avatar_initials: c.avatarInitials,
+    time_to_hire: c.timeToHire,
+    cost_to_hire: c.costToHire,
+    is_new: c.isNew,
+    skills: Array.isArray((c.bio as any)?.skills) ? (c.bio as any).skills : [],
+    background:
+      typeof (c.bio as any)?.description === "string"
+        ? (c.bio as any).description
+        : c.reasoning?.["automotive-continuity"] || "Default candidate",
+    bio: c.bio ?? null,
+  }));
 
+  const manualMapped = manualCandidates.map((c) => ({
+    id: c.id,
+    name: c.name,
+    current_role: c.currentRole,
+    company: c.company,
+    experience_years: c.yearsExperience,
+    avatar_initials: c.avatarInitials,
+    time_to_hire: c.timeToHire,
+    cost_to_hire: c.costToHire,
+    is_new: c.isNew,
+    skills: Array.isArray((c.bio as any)?.skills) ? (c.bio as any).skills : [],
+    background:
+      typeof (c.bio as any)?.description === "string"
+        ? (c.bio as any).description
+        : c.reasoning?.["automotive-continuity"] || "Manually added candidate",
+    bio: c.bio ?? null,
+  }));
+
+  const unique = new Map<string, (typeof defaultMapped)[number]>();
+
+  for (const candidate of [...defaultMapped, ...manualMapped]) {
+    const key = candidate.name.trim().toLowerCase();
+    if (!unique.has(key)) {
+      unique.set(key, candidate);
+    }
+  }
+
+  return Array.from(unique.values());
+}, [manualCandidates]);
   // Live candidates from webhook
   const liveCandidates = masterData ? getCandidates(scenario) : null;
 
   // If we have live data, keep it as base and append manual candidates locally
   const candidates = useMemo(() => {
-    if (liveCandidates) {
-      return [...liveCandidates, ...manualCandidates];
-    }
-    return rankCandidates(localCandidates, scenario);
-  }, [liveCandidates, manualCandidates, localCandidates, scenario]);
+  const map = new Map<string, Candidate>();
+
+  for (const c of dbCandidates || []) {
+    map.set(c.name.toLowerCase(), c);
+  }
+
+  for (const c of liveCandidates || []) {
+    map.set(c.name.toLowerCase(), c);
+  }
+
+  return rankCandidates(Array.from(map.values()), scenario);
+}, [dbCandidates, liveCandidates, scenario]);
 
   const currentDecision = masterData ? getDecision(scenario) : null;
 
@@ -63,11 +116,6 @@ export default function Index() {
   );
 
   // Trigger AI pipeline only once on first dashboard entry, unless user retries manually
-  useEffect(() => {
-    if (screen === "dashboard" && !masterData && !aiLoading && !aiError) {
-      fetchAll("logistics_lead");
-    }
-  }, [screen, masterData, aiLoading, aiError, fetchAll]);
 
   const handleScenarioChange = useCallback(
     (s: Scenario) => {
@@ -93,8 +141,9 @@ export default function Index() {
   }, []);
 
   const handleAnalyze = useCallback(() => {
-    setScreen("dashboard");
-  }, []);
+  fetchAll("logistics_lead", webhookCandidates);
+  setScreen("dashboard");
+}, [fetchAll, webhookCandidates]);
 
   const handleBackToLogin = useCallback(() => {
     setScreen("login");
@@ -115,15 +164,21 @@ export default function Index() {
   }, [fetchAll]);
 
   const handleAddCandidate = useCallback((candidate: Candidate) => {
-    setManualCandidates((prev) => {
-      const exists = prev.some((c) => c.id === candidate.id);
-      if (exists) return prev;
-      return [...prev, candidate];
-    });
+  setManualCandidates((prev) => {
+    const normalizedName = candidate.name.trim().toLowerCase();
 
-    setSelectedId(candidate.id);
-  }, []);
+    const exists = prev.some(
+      (c) =>
+        c.id === candidate.id ||
+        c.name.trim().toLowerCase() === normalizedName
+    );
 
+    if (exists) return prev;
+    return [...prev, candidate];
+  });
+
+  setSelectedId(candidate.id);
+}, []);
   return (
     <AnimatePresence mode="wait">
       {screen === "login" && (
@@ -140,13 +195,15 @@ export default function Index() {
       )}
 
       {screen === "vacancy-detail" && selectedVacancy && (
-        <VacancyDetailPage
-          key="vacancy-detail"
-          vacancy={selectedVacancy}
-          onBack={handleBackToVacancies}
-          onAnalyze={handleAnalyze}
-        />
-      )}
+  <VacancyDetailPage
+    key="vacancy-detail"
+    vacancy={selectedVacancy}
+    candidates={candidates}
+    onAddCandidate={handleAddCandidate}
+    onBack={handleBackToVacancies}
+    onAnalyze={handleAnalyze}
+  />
+)}
 
       {screen === "dashboard" && (
         <motion.div
@@ -264,7 +321,6 @@ export default function Index() {
               <TabsContent value="pool" className="mt-0 outline-none">
                 <TalentPoolTab
                   candidates={candidates}
-                  onAddCandidate={handleAddCandidate}
                 />
               </TabsContent>
             </Tabs>

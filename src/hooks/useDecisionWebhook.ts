@@ -10,7 +10,6 @@ import { Candidate, Scenario } from "@/lib/types";
 
 export type { WebhookRisk, WebhookAlternative };
 
-// Re-export WebhookDecision shape for AiDecisionPanel compatibility
 export interface WebhookDecision {
   recommended_candidate: string;
   rationale: string;
@@ -21,21 +20,13 @@ export interface WebhookDecision {
 }
 
 interface UseMasterWebhookReturn {
-  /** All candidates from AI pipeline (sorted per scenario) */
   candidates: Candidate[] | null;
-  /** Decision for the currently selected scenario */
   decision: WebhookDecision | null;
-  /** Full master response (all scenarios pre-computed) */
   masterData: MasterResponse | null;
-  /** Loading state */
   isLoading: boolean;
-  /** Error message if fetch failed */
   error: string | null;
-  /** Trigger the full pipeline */
-  fetchAll: (roleId?: string) => Promise<void>;
-  /** Get decision for a specific scenario (from cached master data) */
+  fetchAll: (roleId?: string, candidates?: unknown[]) => Promise<void>;
   getDecision: (scenario: Scenario) => WebhookDecision | null;
-  /** Get candidates sorted by a specific scenario (from cached master data) */
   getCandidates: (scenario: Scenario) => Candidate[];
 }
 
@@ -47,58 +38,86 @@ export function useMasterWebhook(): UseMasterWebhookReturn {
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const fetchAll = useCallback(async (roleId: string = "logistics_lead") => {
-    // Cancel any in-flight request
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
+  const fetchAll = useCallback(
+    async (roleId: string = "logistics_lead", candidatesArg?: unknown[]) => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-    setIsLoading(true);
-    setError(null);
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const response = await fetch(WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role_id: roleId }),
-        signal: controller.signal,
-      });
+      try {
+        const payload = {
+          role_id: roleId,
+          ...(candidatesArg && candidatesArg.length > 0
+            ? { candidates: candidatesArg }
+            : {}),
+        };
 
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
+        console.log("WEBHOOK_URL:", WEBHOOK_URL);
+        console.log("WEBHOOK PAYLOAD:", payload);
 
-      const json = await response.json();
-      const data: MasterResponse = json.data || json;
-
-      // Validate response
-      if (!data.candidates || !Array.isArray(data.candidates)) {
-        throw new Error("Invalid response: missing candidates array");
-      }
-
-      setMasterData(data);
-      setCandidates(data.candidates);
-
-      // Set first available decision
-      const firstScenario = Object.keys(data.decisions || {})[0] as Scenario;
-      if (firstScenario && data.decisions[firstScenario]) {
-        const d = data.decisions[firstScenario];
-        setDecision({
-          recommended_candidate: d.recommended_candidate || "Unknown",
-          rationale: d.rationale || "",
-          trade_off: d.trade_off || "",
-          skill_gap_analysis: d.skill_gap_analysis || "",
-          risks: Array.isArray(d.risks) ? d.risks : [],
-          alternatives: Array.isArray(d.alternatives) ? d.alternatives : [],
+        const response = await fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
         });
+
+        const rawText = await response.text();
+
+        console.log("WEBHOOK STATUS:", response.status);
+        console.log("WEBHOOK RAW RESPONSE:", rawText);
+
+        if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}: ${rawText}`);
+        }
+
+        let json: any;
+        try {
+          json = JSON.parse(rawText);
+        } catch {
+          throw new Error(`Webhook did not return valid JSON: ${rawText}`);
+        }
+
+        const data: MasterResponse = json.data || json;
+
+        if (!data || !data.candidates || !Array.isArray(data.candidates)) {
+          throw new Error(
+            `Invalid response: missing candidates array. Parsed payload: ${JSON.stringify(data)}`
+          );
+        }
+
+        setMasterData(data);
+        setCandidates(data.candidates);
+
+        const firstScenario = Object.keys(data.decisions || {})[0] as Scenario;
+        if (firstScenario && data.decisions?.[firstScenario]) {
+          const d = data.decisions[firstScenario];
+          setDecision({
+            recommended_candidate: d.recommended_candidate || "Unknown",
+            rationale: d.rationale || "",
+            trade_off: d.trade_off || "",
+            skill_gap_analysis: d.skill_gap_analysis || "",
+            risks: Array.isArray(d.risks) ? d.risks : [],
+            alternatives: Array.isArray(d.alternatives) ? d.alternatives : [],
+          });
+        } else {
+          setDecision(null);
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") return;
+        console.error("FETCH ALL ERROR:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to connect to AI Agent."
+        );
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
-      setError(err instanceof Error ? err.message : "Failed to connect to AI Agent.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   const getDecision = useCallback(
     (scenario: Scenario): WebhookDecision | null => {
@@ -138,8 +157,6 @@ export function useMasterWebhook(): UseMasterWebhookReturn {
   };
 }
 
-// ── Legacy hook (backward-compatible) ──
-
 interface UseDecisionWebhookReturn {
   decision: WebhookDecision | null;
   isLoading: boolean;
@@ -172,11 +189,22 @@ export function useDecisionWebhook(): UseDecisionWebhookReturn {
         body: JSON.stringify({ scenario: scenarioName }),
       });
 
+      const rawText = await response.text();
+
+      console.log("LEGACY WEBHOOK STATUS:", response.status);
+      console.log("LEGACY WEBHOOK RAW RESPONSE:", rawText);
+
       if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
+        throw new Error(`Server responded with ${response.status}: ${rawText}`);
       }
 
-      const json = await response.json();
+      let json: any;
+      try {
+        json = JSON.parse(rawText);
+      } catch {
+        throw new Error(`Webhook did not return valid JSON: ${rawText}`);
+      }
+
       const data = json.data || json;
 
       const parsed: WebhookDecision = {
@@ -198,7 +226,10 @@ export function useDecisionWebhook(): UseDecisionWebhookReturn {
 
       setDecision(parsed);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to connect to AI Agent.");
+      console.error("FETCH DECISION ERROR:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to connect to AI Agent."
+      );
     } finally {
       setIsLoading(false);
     }
