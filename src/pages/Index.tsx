@@ -140,10 +140,30 @@ export default function Index() {
     setScreen("vacancy-detail");
   }, []);
 
+  const candidatesForAnalyze = useMemo(() => {
+  return candidates.map((c) => ({
+    id: c.id,
+    name: c.name,
+    current_role: c.currentRole,
+    company: c.company,
+    experience_years: c.yearsExperience,
+    avatar_initials: c.avatarInitials,
+    time_to_hire: c.timeToHire,
+    cost_to_hire: c.costToHire,
+    is_new: c.isNew,
+    skills: Array.isArray((c.bio as any)?.skills) ? (c.bio as any).skills : [],
+    background:
+      typeof (c.bio as any)?.description === "string"
+        ? (c.bio as any).description
+        : "Candidate from HR system",
+    bio: c.bio ?? null,
+  }));
+}, [candidates]);
+
   const handleAnalyze = useCallback(() => {
-  fetchAll("logistics_lead", webhookCandidates);
+  fetchAll("logistics_lead", candidatesForAnalyze);
   setScreen("dashboard");
-}, [fetchAll, webhookCandidates]);
+}, [fetchAll, candidatesForAnalyze]);
 
   const handleBackToLogin = useCallback(() => {
     setScreen("login");
@@ -160,9 +180,8 @@ export default function Index() {
   }, []);
 
   const handleRetryAi = useCallback(() => {
-    fetchAll("logistics_lead");
-  }, [fetchAll]);
-
+  fetchAll("logistics_lead", candidatesForAnalyze);
+}, [fetchAll, candidatesForAnalyze]);
   const handleAddCandidate = useCallback((candidate: Candidate) => {
   setManualCandidates((prev) => {
     const normalizedName = candidate.name.trim().toLowerCase();
