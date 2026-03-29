@@ -75,3 +75,29 @@ export async function insertCandidateSubmission(input: {
 
   return data;
 }
+
+export async function upsertStrategyContext(text: string) {
+  const { data, error } = await supabase
+    .from("company_strategies")
+    .upsert([{ id: "current-strategy", strategy_text: text, updated_at: new Date().toISOString() }], { onConflict: "id" })
+    .select();
+
+  if (error) {
+    console.error("Upsert strategy error:", error);
+    throw error;
+  }
+  return data;
+}
+
+export async function getLatestStrategy() {
+  const { data, error } = await supabase
+    .from("company_strategies")
+    .select("strategy_text")
+    .eq("id", "current-strategy")
+    .single();
+
+  if (error && error.code !== "PGRST116") { // Ignore "no rows found" error
+    console.error("Fetch strategy error:", error);
+  }
+  return data?.strategy_text || "";
+}

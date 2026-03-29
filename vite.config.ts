@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => ({
       "/api/n8n": {
         target: "https://timatakky.app.n8n.cloud",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/n8n/, "/webhook-test"),
+        rewrite: (path) => path.replace(/^\/api\/n8n/, "/webhook"),
         secure: true,
       },
     },

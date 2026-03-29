@@ -29,6 +29,7 @@ export interface Candidate {
     education: string;
     applicationDate: string;
     description: string;
+    skills?: string[];
   };
 }
 

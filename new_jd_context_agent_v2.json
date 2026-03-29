@@ -1,0 +1,193 @@
+{
+  "name": "Dynamic JD Agent (File Upload Version)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hr-plans-upload",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "e8ec16fa-d450-4d40-b38d-0a56e7bd4fff",
+      "name": "HR Upload Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "hr-plans-upload"
+    },
+    {
+      "parameters": {
+        "operation": "extractFromFile",
+        "filePropertyName": "document",
+        "options": {}
+      },
+      "id": "eb0ef179-8472-46a4-bb89-cd7eb73bed62",
+      "name": "Extract Text from PDF/CSV",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://newsapi.org/v2/top-headlines?category=business&apiKey=9cdc0aa1b4e2442ca4546e4edad69339",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1be7ab72-132d-4f11-8975-f5b9d36e2f17",
+      "name": "Fetch Market News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        420,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extracted string from the uploaded business plan document\nconst documentText = $items(\"Extract Text from PDF/CSV\")[0].json.text || \"[No text extracted]\";\n\nconst hrData = $items(\"HR Upload Webhook\")[0].json.body || {};\nconst newsData = $input.all()[0].json;\n\n// Compile the active_scenario by analyzing the file data string\nconst active_scenario = `\nINTERNAL HR STRATEGY/PLANS (from uploaded document):\n${documentText.substring(0, 5000)} // Truncated to prevent context window blowup\n\nURGENT BUSINESS OVERRIDE:\n${hrData.context || 'None'}\n\nEXTERNAL MARKET NEWS:\n${JSON.stringify(newsData)}\n`;\n\nreturn {\n  active_scenario: active_scenario,\n  original_jd: hrData.original_jd || 'Standard Logistics Lead Description...'\n};"
+      },
+      "id": "67406a14-4632-4752-bff3-1a84f5f8ea78",
+      "name": "Context Compiler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Role: Senior Executive Board Advisor & Strategic HR Architect at BMW Group.\n\nInputs:\nOriginal Job Description: {{ $json.original_jd }}\nActive Business Scenario: {{ $json.active_scenario }}\n\nTask:\nYou are practicing \"Dynamic Scenario Adaptation\". The static job description is no longer valid because the business context has changed due to the Active Business Scenario. You must completely rewrite the role's focus to survive and thrive in this new reality.\n\nInstructions:\n1. Update the Job Title to reflect the crisis/scenario context.\n2. Identify which standard responsibilities must be REMOVED (because they are too slow or irrelevant right now).\n3. Identify new, urgent responsibilities that must be ADDED to address the scenario.\n4. Define a brutal, hyper-focused \"New 90-Day KPI\" (What must this person achieve in 3 months to save or transform the business?).\n5. Define the 5 new Core Competencies required for this adapted role.\n6. Distribute weights (0.0 to 1.0) across these 5 competencies. The sum MUST be exactly 1.0.\n7. Provide strategic reasoning for this massive shift.\n\nCRITICAL FORMATTING RULES:\n- Output ONLY valid JSON matching the schema below."
+      },
+      "id": "a2b0ac31-50ea-4b77-bfc5-3642158862cf",
+      "name": "JD Context Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "64cb659f-d3f3-4e4b-9d41-3a0ed7127ce6",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        860,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "fromJson",
+        "jsonSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"scenario_applied\": {\n      \"type\": \"string\"\n    },\n    \"updated_job_title\": {\n      \"type\": \"string\"\n    },\n    \"removed_responsibilities\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"added_responsibilities\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"new_90_day_kpi\": {\n      \"type\": \"string\"\n    },\n    \"strategic_reasoning\": {\n      \"type\": \"string\"\n    },\n    \"core_competencies\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"minItems\": 5,\n      \"maxItems\": 5\n    },\n    \"competency_weights\": {\n      \"type\": \"object\",\n      \"patternProperties\": {\n        \".*\": {\n          \"type\": \"number\",\n          \"minimum\": 0.0,\n          \"maximum\": 1.0\n        }\n      }\n    }\n  },\n  \"required\": [\n    \"scenario_applied\",\n    \"updated_job_title\",\n    \"removed_responsibilities\",\n    \"added_responsibilities\",\n    \"new_90_day_kpi\",\n    \"strategic_reasoning\",\n    \"core_competencies\",\n    \"competency_weights\"\n  ],\n  \"additionalProperties\": false\n}"
+      },
+      "id": "c1f72782-b7e9-4f7f-af2b-e1927448e8e7",
+      "name": "Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.1,
+      "position": [
+        1060,
+        500
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HR Upload Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Text from PDF/CSV",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Market News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text from PDF/CSV": {
+      "main": [
+        [
+          {
+            "node": "Context Compiler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Market News": {
+      "main": [
+        [
+          {
+            "node": "Context Compiler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Compiler": {
+      "main": [
+        [
+          {
+            "node": "JD Context Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "JD Context Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "JD Context Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}

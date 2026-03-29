@@ -1,0 +1,659 @@
+{
+  "name": "BMW AI Final Decision System (FIXED)",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "candidate_submissions",
+        "returnAll": true
+      },
+      "id": "40861df1-c1cd-42c7-8abd-474f381fcdbb",
+      "name": "Fetch All Candidates",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        1088
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "zKKJuWGTx6gleGr1",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "company_strategies"
+      },
+      "id": "c3a1d72b-db54-4fdd-b2b8-033e2a5a2d29",
+      "name": "Fetch Latest Strategy",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        1392
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "zKKJuWGTx6gleGr1",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "company_strategies",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "current-strategy"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "strategy_text",
+              "fieldValue": "={{ $json.output }}"
+            }
+          ]
+        }
+      },
+      "id": "8d7b0697-b9ec-4db7-bc90-f35f0a9743f7",
+      "name": "Save Strategy to DB",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        320,
+        592
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "zKKJuWGTx6gleGr1",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "b57e4f76-abce-44e4-82bb-150979c13861",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -768,
+        1200
+      ],
+      "id": "447ac074-092f-4471-b900-80a660073e4b",
+      "name": "Webhook",
+      "webhookId": "b57e4f76-abce-44e4-82bb-150979c13861"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dbCandidates = $items(\"Fetch All Candidates\").map(item => item.json);\n\nlet dbStrategy = \"Standard BMW Logistics Excellence Strategy\";\ntry {\n  // Handle potential name variants (Fetch Latest Strategy or Fetch Latest Strategy1)\n  const strategyNode = $(\"Fetch Latest Strategy\") || $(\"Fetch Latest Strategy1\");\n  dbStrategy = strategyNode.first().json.strategy_text || dbStrategy;\n} catch (e) {\n  console.log(\"Strategy node not found, using default\");\n}\n\nconst webhookData = $items(\"Webhook\")[0]?.json?.body || {};\nconst roleId = webhookData.role_id || \"logistics_lead\";\n\nconst jobDescriptions = {\n  \"logistics_lead\": {\n    \"title\": \"Senior Lead, Production & Logistics Excellence — VP Powertrain Operations\",\n    \"core_requirements\": [\"Lean Manufacturing\", \"Supply Chain Management\", \"Crisis Management\", \"Cross-functional Leadership\", \"Operational Excellence\", \"Board-level Stakeholder Management\"],\n    \"full_description\": \"We are seeking an exceptional executive to lead our Powertrain Operations division through transformational change. Oversee 200+ engineers across 3 manufacturing sites...\"\n  }\n};\n\nconst candidatePool = dbCandidates.map(c => ({\n  id: c.id,\n  name: c.full_name,\n  current_role: c.current_job_title,\n  company: c.company || \"BMW Group\",\n  experience_years: c.experience_years || 10,\n  avatar_initials: (c.full_name || \"?\").split(\" \").map(n => n[0]).join(\"\").toUpperCase(),\n  skills: c.skills_json || [],\n  background: c.cv_text || \"\",\n  bio: c.parsed_candidate_json?.bio || {}\n}));\n\nreturn [{\n  json: {\n    selected_jd: jobDescriptions[roleId] || jobDescriptions[\"logistics_lead\"],\n    persisted_strategy: dbStrategy,\n    candidate_pool: candidatePool,\n    current_team_metrics: webhookData.team_metrics || { digital_fluency: 4.2, crisis_resilience: 6.8 }\n  }\n}];"
+      },
+      "id": "90626ecc-6bb3-4e45-b04e-6d9c6ad7e6a0",
+      "name": "Prepare Data1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this Job Description and the current Strategic Context to produce scenario-specific competency weights.\n\nJOB DESCRIPTION:\n{{ $('Prepare Data1').first().json.selected_jd.title }}\n\nSTRATEGIC CONTEXT (from DB):\n{{ $('Prepare Data1').first().json.persisted_strategy }}\n\nGenerate weights for these 3 business scenarios:\n1. supply_chain_crisis\n2. transformation\n3. automotive_continuity\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are the JD Context Agent for BMW Group. Assign a decimal weight (0.0 to 1.0) to EACH of the 6 dimensions: riskTaking, processFocus, resilience, innovation, stakeholderManagement, executionSpeed."
+        }
+      },
+      "id": "f708f670-2d0e-4e59-807b-13c9cd1c2ec7",
+      "name": "JD Context Agent2",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        64,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.15
+        }
+      },
+      "id": "75d24f3c-0571-41eb-9f5a-b10abd2ff0ed",
+      "name": "JD Context Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        64,
+        1296
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "lSWJ8UELlbsCTkDV",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"supply_chain_crisis\": { \"weights\": { \"riskTaking\": 0.1, \"processFocus\": 0.1, \"resilience\": 0.3, \"innovation\": 0.1, \"stakeholderManagement\": 0.1, \"executionSpeed\": 0.3 }, \"reasoning\": \"...\" },\n  \"transformation\": { \"weights\": { \"riskTaking\": 0.2, \"processFocus\": 0.1, \"resilience\": 0.1, \"innovation\": 0.3, \"stakeholderManagement\": 0.1, \"executionSpeed\": 0.2 }, \"reasoning\": \"...\" },\n  \"automotive_continuity\": { \"weights\": { \"riskTaking\": 0.1, \"processFocus\": 0.3, \"resilience\": 0.1, \"innovation\": 0.1, \"stakeholderManagement\": 0.3, \"executionSpeed\": 0.1 }, \"reasoning\": \"...\" }\n}",
+        "autoFix": true
+      },
+      "id": "19d576d7-3b64-4a22-b076-6417a46d076e",
+      "name": "JD Context Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        1184
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=SCENARIO WEIGHTS:\n{{ JSON.stringify($('JD Context Agent2').first().json.output) }}\n\nCANDIDATE POOL:\n{{ JSON.stringify($('Prepare Data1').first().json.candidate_pool) }}\n\nScore ALL candidates on riskTaking, processFocus, resilience, innovation, stakeholderManagement, executionSpeed.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are the CV Scoring Agent. Output JSON with scored_candidates array."
+        }
+      },
+      "id": "e701f374-f8ce-497c-8e1f-52fc196ca97f",
+      "name": "CV Scoring Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        544,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.15
+        }
+      },
+      "id": "02222c7f-8bf4-4755-af46-971aaf22c488",
+      "name": "CV Scoring Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        544,
+        1296
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "lSWJ8UELlbsCTkDV",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"scored_candidates\": [\n    {\n      \"id\": \"c1\",\n      \"name\": \"Name\",\n      \"traits\": { \"riskTaking\": 5, \"processFocus\": 5, \"resilience\": 5, \"innovation\": 5, \"stakeholderManagement\": 5, \"executionSpeed\": 5 },\n      \"fitScores\": { \"automotive_continuity\": 70, \"transformation\": 70, \"supply_chain_crisis\": 70 },\n      \"riskScores\": { \"automotive_continuity\": 5, \"transformation\": 5, \"supply_chain_crisis\": 5 },\n      \"reasoning\": { \"automotive_continuity\": \"...\", \"transformation\": \"...\", \"supply_chain_crisis\": \"...\" }\n    }\n  ]\n}",
+        "autoFix": true
+      },
+      "id": "5d2ae4aa-b383-4928-b44e-5f5115d8ce23",
+      "name": "CV Scoring Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        1184
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=SCORED CANDIDATES:\n{{ JSON.stringify($('CV Scoring Agent').first().json.output) }}\n\nTEAM METRICS:\n{{ JSON.stringify($('Prepare Data1').first().json.current_team_metrics) }}\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are the Decision Intelligence Agent. Recommend the best candidate for each scenario."
+        }
+      },
+      "id": "f1bd3339-9224-414c-adc6-599dbe5b1818",
+      "name": "Decision Intelligence Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1024,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.15
+        }
+      },
+      "id": "b5d3588f-ee28-4581-9141-c84105bafde7",
+      "name": "Decision Intelligence Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1024,
+        1296
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "lSWJ8UELlbsCTkDV",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"automotive_continuity\": { \"recommended_candidate\": \"Name\", \"rationale\": \"...\", \"skill_gap_analysis\": \"...\", \"trade_off\": \"...\", \"risks\": [], \"confidence_level\": \"High\", \"alternatives\": [] },\n  \"transformation\": { \"recommended_candidate\": \"Name\", \"rationale\": \"...\", \"skill_gap_analysis\": \"...\", \"trade_off\": \"...\", \"risks\": [], \"confidence_level\": \"High\", \"alternatives\": [] },\n  \"supply_chain_crisis\": { \"recommended_candidate\": \"Name\", \"rationale\": \"...\", \"skill_gap_analysis\": \"...\", \"trade_off\": \"...\", \"risks\": [], \"confidence_level\": \"High\", \"alternatives\": [] }\n}",
+        "autoFix": true
+      },
+      "id": "dd81507b-c681-43c7-ac76-e1123630e907",
+      "name": "Decision Intelligence Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1200,
+        1184
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst prepData = $('Prepare Data1').first().json;\nconst jdOutput = $('JD Context Agent2').first().json.output;\nconst cvOutput = $('CV Scoring Agent').first().json.output;\nconst decisionOutput = $('Decision Intelligence Agent').first().json.output;\nconst candidatePool = prepData.candidate_pool;\n\nconst keyMap = {\n  'automotive_continuity': 'automotive-continuity',\n  'transformation': 'transformation',\n  'supply_chain_crisis': 'supply-chain-crisis'\n};\n\nconst candidates = cvOutput.scored_candidates.map(scored => {\n  const base = candidatePool.find(c => c.id === scored.id) || {};\n  const fitScores = {}; const riskScore = {}; const reasoning = {};\n  for (const [nKey, feKey] of Object.entries(keyMap)) {\n    fitScores[feKey] = scored.fitScores?.[nKey] ?? 50;\n    riskScore[feKey] = scored.riskScores?.[nKey] ?? 5;\n    reasoning[feKey] = scored.reasoning?.[nKey] ?? '';\n  }\n  return {\n    id: scored.id, name: scored.name, currentRole: base.current_role || '', company: base.company || 'BMW Group',\n    yearsExperience: base.experience_years || 10, avatarInitials: base.avatar_initials || '?',\n    traits: scored.traits, fitScores, riskScore, reasoning\n  };\n});\n\nconst decisions = {};\nfor (const [nKey, feKey] of Object.entries(keyMap)) {\n  decisions[feKey] = decisionOutput[nKey] || {};\n}\n\nreturn [{\n  json: {\n    status: \"success\",\n    data: {\n      candidates: candidates,\n      decisions: decisions,\n      weights: Object.fromEntries(Object.entries(keyMap).map(([nk, fk]) => [fk, jdOutput[nk]?.weights || {}]))\n    }\n  }\n}];"
+      },
+      "id": "4b05b313-bf51-438c-91b5-c27dfbfa731d",
+      "name": "Format Master Response1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "522cd8ef-7c19-4a57-8aa4-3be5a9d5c68c",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1744,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hr-plans-upload",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "46ba5be2-2fe7-4331-9fd4-8ba1e35f81c2",
+      "name": "HR Upload Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -784,
+        656
+      ],
+      "webhookId": "hr-plans-upload"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "document",
+        "options": {}
+      },
+      "id": "2f30b49c-4702-4ab9-ab4a-0fd60152e302",
+      "name": "Extract Text from PDF/CSV1",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://newsapi.org/v2/everything?q=(BMW OR \"Automotive Industry\" OR \"EV Infrastructure\")&sortBy=publishedAt&apiKey=9cdc0aa1b4e2442ca4546e4edad69339",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3a733677-66cd-4295-bacf-41d13c570da4",
+      "name": "Fetch Market News1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -272,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -32,
+        768
+      ],
+      "id": "022a1046-5e1f-4f1b-b2e4-c818cab2bc5b",
+      "name": "Context Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "lSWJ8UELlbsCTkDV",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a BMW Strategic Analyst. Take the provided HR plans and market news, and compile them into a concise, high-level strategic context for a job description.\n\nRAW HR PLAN:\n{{ $(\"Extract Text from PDF/CSV1\").first().json.text }}\n\nMARKET NEWS CONTEXT:\n{{ JSON.stringify($(\"Fetch Market News1\").all().map(i => i.json.articles?.map(a => a.title))) }}\n",
+        "options": {
+          "systemMessage": "Output only the professional combined strategic context."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -32,
+        592
+      ],
+      "id": "e1f8b1fc-7e70-4eea-95ab-166e527822b8",
+      "name": "Context Agent"
+    }
+  ],
+  "connections": {
+    "Fetch All Candidates": {
+      "main": [
+        [
+          {
+            "node": "Prepare Data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Latest Strategy": {
+      "main": [
+        [
+          {
+            "node": "Prepare Data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch All Candidates",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Latest Strategy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Data1": {
+      "main": [
+        [
+          {
+            "node": "JD Context Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JD Context Agent2": {
+      "main": [
+        [
+          {
+            "node": "CV Scoring Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JD Context Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "JD Context Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "JD Context Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JD Context Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "JD Context Agent2",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CV Scoring Agent": {
+      "main": [
+        [
+          {
+            "node": "Decision Intelligence Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CV Scoring Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CV Scoring Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "CV Scoring Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CV Scoring Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "CV Scoring Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision Intelligence Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Master Response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision Intelligence Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Decision Intelligence Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Decision Intelligence Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision Intelligence Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Decision Intelligence Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Master Response1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HR Upload Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Extract Text from PDF/CSV1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Market News1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text from PDF/CSV1": {
+      "main": [
+        [
+          {
+            "node": "Context Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Market News1": {
+      "main": [
+        [
+          {
+            "node": "Context Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Context Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Agent": {
+      "main": [
+        [
+          {
+            "node": "Save Strategy to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
