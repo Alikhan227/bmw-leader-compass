@@ -11,16 +11,17 @@ import { VacancyListScreen } from "@/components/VacancyListScreen";
 import { VacancyDetailPage } from "@/components/VacancyDetailPage";
 import { TalentPoolTab } from "@/components/TalentPoolTab";
 import { AiDecisionPanel } from "@/components/AiDecisionPanel";
+import { RoleSelectionScreen } from "@/components/RoleSelectionScreen";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMasterWebhook } from "@/hooks/useDecisionWebhook";
 import { useCandidatesDB } from "@/hooks/useCandidatesDB";
 
-type AppScreen = "login" | "vacancies" | "vacancy-detail" | "dashboard";
+type AppScreen = "role-selection" | "login" | "vacancies" | "vacancy-detail" | "dashboard";
 
 export default function Index() {
   const { candidates: dbCandidates } = useCandidatesDB();
-  const [screen, setScreen] = useState<AppScreen>("login");
+  const [screen, setScreen] = useState<AppScreen>("role-selection");
   const [selectedVacancyId, setSelectedVacancyId] = useState<string | null>(null);
   const [scenario, setScenario] = useState<Scenario>("automotive-continuity");
   const [selectedId, setSelectedId] = useState<string | null>("c1");
@@ -131,6 +132,17 @@ export default function Index() {
     [liveCandidates, getCandidates, manualCandidates]
   );
 
+  const handleRoleSelect = useCallback((role: "hr" | "candidate") => {
+    if (role === "hr") {
+      setScreen("login");
+    }
+    // "candidate" role currently does nothing as requested.
+  }, []);
+
+  const handleBackToRoleSelection = useCallback(() => {
+    setScreen("role-selection");
+  }, []);
+
   const handleLoginComplete = useCallback(() => {
     setScreen("vacancies");
   }, []);
@@ -200,8 +212,12 @@ export default function Index() {
 }, []);
   return (
     <AnimatePresence mode="wait">
+      {screen === "role-selection" && (
+        <RoleSelectionScreen key="role-selection" onSelectRole={handleRoleSelect} />
+      )}
+
       {screen === "login" && (
-        <LoginScreen key="login" onComplete={handleLoginComplete} />
+        <LoginScreen key="login" onComplete={handleLoginComplete} onBack={handleBackToRoleSelection} />
       )}
 
       {screen === "vacancies" && (

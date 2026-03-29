@@ -1,40 +1,15 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, ShieldCheck, ChevronRight, Server, User } from "lucide-react";
+import { Lock, ShieldCheck, ChevronRight, Server, User, ChevronLeft } from "lucide-react";
 
 interface LoginScreenProps {
   onComplete: () => void;
+  onBack: () => void;
 }
 
-export function LoginScreen({ onComplete }: LoginScreenProps) {
-  const [isBooting, setIsBooting] = useState(false);
-  const [logs, setLogs] = useState<string[]>([]);
-
-  const bootSequence = [
-    "> Authenticating Executive Clearance... [SUCCESS]",
-    "> Booting Multi-Agent Core Framework...",
-    "> [JD AGENT] Instantiating Scenario Requirements...",
-    "> [CV AGENT] Extracting & Scoring Leader Profiles...",
-    "> [SCENARIO AGENT] Calculating Dynamic Confidence Weights...",
-    "> Executive Dashboard Interface Ready."
-  ];
-
+export function LoginScreen({ onComplete, onBack }: LoginScreenProps) {
   const startBoot = () => {
-    setIsBooting(true);
-    let currentLog = 0;
-    const intervalTime = 2000 / (bootSequence.length + 1);
-    
-    const interval = setInterval(() => {
-      setLogs((prev) => [...prev, bootSequence[currentLog]]);
-      currentLog++;
-      
-      if (currentLog >= bootSequence.length) {
-        clearInterval(interval);
-        setTimeout(() => {
-          onComplete();
-        }, intervalTime);
-      }
-    }, intervalTime);
+    onComplete();
   };
 
   return (
@@ -62,6 +37,15 @@ export function LoginScreen({ onComplete }: LoginScreenProps) {
 
       {/* Right side: Employee Profile Selection */}
       <div className="flex flex-col justify-center p-8 lg:p-24 relative bg-[#0B1120]">
+        {/* Back Button */}
+        <button 
+          onClick={onBack}
+          className="absolute top-8 left-8 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground hover:text-[#0066B1] transition-colors group"
+        >
+          <ChevronLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+          Back to Selection
+        </button>
+
         <div className="w-full max-w-xl mx-auto space-y-8">
           
           <div className="mb-10">
@@ -74,7 +58,6 @@ export function LoginScreen({ onComplete }: LoginScreenProps) {
 
           <div className="min-h-[300px]">
             <AnimatePresence mode="wait">
-              {!isBooting ? (
                 <motion.div 
                   key="selection"
                   initial={{ opacity: 0, y: 10 }}
@@ -140,31 +123,6 @@ export function LoginScreen({ onComplete }: LoginScreenProps) {
                     </div>
                   </div>
                 </motion.div>
-              ) : (
-                <motion.div 
-                  key="terminal"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="bg-[#0a0f18] p-6 lg:p-8 min-h-[300px] border border-[#0066B1]/40 font-mono text-sm"
-                >
-                  <div className="flex items-center justify-between mb-6 border-b border-[#0066B1]/30 pb-3">
-                    <span className="text-[#0066B1] font-bold tracking-[0.2em] text-[10px] uppercase">Terminal // Boot Sequence</span>
-                    <span className="animate-pulse text-[#0066B1]">■</span>
-                  </div>
-                  <div className="space-y-3 text-emerald-400">
-                    {logs.map((log, index) => (
-                      <motion.div 
-                        key={index}
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.1 }}
-                      >
-                        {log}
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
             </AnimatePresence>
           </div>
         </div>
