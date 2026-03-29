@@ -10,7 +10,9 @@ import {
   Building2,
   Cpu,
   ArrowRight,
+  FileUp,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { TalentPoolTab } from "@/components/TalentPoolTab";
 
 interface VacancyDetailPageProps {
@@ -81,8 +83,14 @@ export function VacancyDetailPage({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1 border border-emerald-400/30 bg-emerald-400/10 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">
-            ● ACTIVE
+          <div className="flex items-center gap-4">
+            <Link to="/hr-admin" className="flex items-center gap-2 px-3 py-1 border border-[#0066B1]/30 bg-[#0066B1]/10 text-[10px] font-bold uppercase tracking-[0.2em] text-[#0066B1] hover:bg-[#0066B1] hover:text-white transition-all">
+              <FileUp className="w-3 h-3" />
+              HR Admin
+            </Link>
+            <div className="flex items-center gap-1.5 px-3 py-1 border border-emerald-400/30 bg-emerald-400/10 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">
+              ● ACTIVE
+            </div>
           </div>
         </div>
       </header>

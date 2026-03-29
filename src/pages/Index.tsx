@@ -9,6 +9,7 @@ import { ReasoningPanel } from "@/components/ReasoningPanel";
 import { LoginScreen } from "@/components/LoginScreen";
 import { VacancyListScreen } from "@/components/VacancyListScreen";
 import { VacancyDetailPage } from "@/components/VacancyDetailPage";
+import { Link } from "react-router-dom";
 import { TalentPoolTab } from "@/components/TalentPoolTab";
 import { AiDecisionPanel } from "@/components/AiDecisionPanel";
 import { RoleSelectionScreen } from "@/components/RoleSelectionScreen";

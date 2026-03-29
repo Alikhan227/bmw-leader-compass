@@ -29,9 +29,6 @@ export function DashboardHeader({ onLogout }: DashboardHeaderProps) {
           </div>
         </div>
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <Link to="/hr-admin" className="font-bold uppercase tracking-widest text-[#0066B1] hover:text-[#005596] transition-colors">
-            HR Admin
-          </Link>
           <div className="border border-bmw-success/30 bg-bmw-success/10 px-2 py-1 flex items-center gap-1.5">
             <span className="inline-flex items-center gap-1.5 text-bmw-success font-bold uppercase tracking-widest text-[10px]">
               <span className="w-1.5 h-1.5 bg-bmw-success rounded-none" />
