@@ -6,58 +6,68 @@ export function useCandidatesDB() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchCandidates();
-  }, []);
-
   async function fetchCandidates() {
+    setLoading(true);
+
     const { data, error } = await supabase
       .from("candidate_submissions")
-      .select("*");
+      .select("*")
+      .in("status", ["parsed", "ready"])
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error("DB error:", error);
+      setCandidates([]);
+      setLoading(false);
       return;
     }
 
-    const mapped: Candidate[] = (data || []).map((c) => ({
+    const mapped: Candidate[] = (data || []).map((c: any) => ({
       id: c.id,
-      name: c.full_name,
-      currentRole: c.current_job_title,
-      company: c.company,
+      name: c.full_name || "Unnamed Candidate",
+      currentRole: c.current_job_title || "Candidate",
+      company: c.company || "External Applicant",
       yearsExperience: c.experience_years || 0,
-      avatarInitials: (c.full_name || "?")
-        .split(" ")
-        .map((n: string) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase(),
+      avatarInitials:
+        c.avatar_initials ||
+        (c.full_name || "UC")
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase(),
       traits: {
-        riskTaking: 5,
-        processFocus: 5,
-        resilience: 5,
-        innovation: 5,
-        stakeholderManagement: 5,
-        executionSpeed: 5,
+        riskTaking: c.risk_taking ?? 5,
+        processFocus: c.process_focus ?? 5,
+        resilience: c.resilience ?? 5,
+        innovation: c.innovation ?? 5,
+        stakeholderManagement: c.stakeholder_management ?? 5,
+        executionSpeed: c.execution_speed ?? 5,
       },
       fitScores: {
         "automotive-continuity": 50,
         transformation: 50,
         "supply-chain-crisis": 50,
       },
-      timeToHire: 30,
-      costToHire: 5,
+      timeToHire: c.time_to_hire ?? 30,
+      costToHire: c.cost_to_hire ?? 5,
       riskScore: {
         "automotive-continuity": 5,
         transformation: 5,
         "supply-chain-crisis": 5,
+      },
+      reasoning: {
+        "automotive-continuity": "Awaiting AI analysis.",
+        transformation: "Awaiting AI analysis.",
+        "supply-chain-crisis": "Awaiting AI analysis.",
       },
       bio: {
         dateOfBirth: "",
         placeOfBirth: "",
         education: "",
         applicationDate: "",
-        description: c.cv_text || "",
+        description: c.background || c.cv_text || "Candidate submitted through HR system.",
+        skills: Array.isArray(c.skills_json) ? c.skills_json : [],
       },
       isNew: true,
     }));
@@ -65,6 +75,10 @@ export function useCandidatesDB() {
     setCandidates(mapped);
     setLoading(false);
   }
+
+  useEffect(() => {
+    void fetchCandidates();
+  }, []);
 
   return { candidates, loading, refetch: fetchCandidates };
 }

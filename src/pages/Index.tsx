@@ -194,6 +194,7 @@ export default function Index() {
   const handleRetryAi = useCallback(() => {
   fetchAll("logistics_lead", candidatesForAnalyze);
 }, [fetchAll, candidatesForAnalyze]);
+
   const handleAddCandidate = useCallback((candidate: Candidate) => {
   setManualCandidates((prev) => {
     const normalizedName = candidate.name.trim().toLowerCase();
