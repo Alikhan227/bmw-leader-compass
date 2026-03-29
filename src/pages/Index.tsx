@@ -235,7 +235,7 @@ export default function Index() {
     key="vacancy-detail"
     vacancy={selectedVacancy}
     candidates={candidates}
-    onAddCandidate={handleAddCandidate}
+    // onAddCandidate={handleAddCandidate}
     onBack={handleBackToVacancies}
     onAnalyze={handleAnalyze}
   />
@@ -332,11 +332,14 @@ export default function Index() {
                   </section>
 
                   <section className="lg:col-span-7 space-y-4" aria-label="Candidate Details">
+                    {selectedCandidate && (
                     <LeadershipRadar
                       candidate={selectedCandidate}
                       scenario={scenario}
                       team={selectedVacancy?.team}
+                      allCandidates={candidates}
                     />
+                  )}
                     <ReasoningPanel candidate={selectedCandidate} scenario={scenario} />
                   </section>
                 </div>
@@ -354,11 +357,129 @@ export default function Index() {
                 </section>
               </TabsContent>
 
-              <TabsContent value="pool" className="mt-0 outline-none">
-                <TalentPoolTab
-                  candidates={candidates}
-                />
-              </TabsContent>
+             <TabsContent value="pool" className="mt-0 outline-none">
+  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <section className="lg:col-span-5">
+      <TalentPoolTab
+        candidates={candidates}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+      />
+    </section>
+
+    <section className="lg:col-span-7">
+      {selectedCandidate && (
+        <div className="bmw-card p-5 space-y-5">
+          <div>
+            <p className="bmw-section-title mb-1">Candidate Details</p>
+            <h3 className="text-xl font-bold text-white">{selectedCandidate.name}</h3>
+            <p className="text-sm text-muted-foreground">
+              {selectedCandidate.currentRole} · {selectedCandidate.company}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="bg-[#0A0A0A] border border-[#333333] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
+                Experience
+              </p>
+              <p className="text-white font-semibold">
+                {selectedCandidate.yearsExperience} years
+              </p>
+            </div>
+
+            <div className="bg-[#0A0A0A] border border-[#333333] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
+                Time to Hire
+              </p>
+              <p className="text-white font-semibold">
+                {selectedCandidate.timeToHire} days
+              </p>
+            </div>
+
+            <div className="bg-[#0A0A0A] border border-[#333333] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
+                Cost to Hire
+              </p>
+              <p className="text-white font-semibold">
+                {selectedCandidate.costToHire}/10
+              </p>
+            </div>
+
+            <div className="bg-[#0A0A0A] border border-[#333333] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
+                Top Fit
+              </p>
+              <p className="text-white font-semibold">
+                {Math.max(
+                  selectedCandidate.fitScores?.["automotive-continuity"] || 0,
+                  selectedCandidate.fitScores?.transformation || 0,
+                  selectedCandidate.fitScores?.["supply-chain-crisis"] || 0
+                )}
+                %
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-[#0A0A0A] border border-[#333333] p-4">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">
+              Background
+            </p>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              {selectedCandidate.bio?.description || "No additional background available."}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="bg-[#0A0A0A] border border-[#333333] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
+                Risk Taking
+              </p>
+              <p className="text-white font-semibold">{selectedCandidate.traits.riskTaking}/10</p>
+            </div>
+
+            <div className="bg-[#0A0A0A] border border-[#333333] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
+                Process Focus
+              </p>
+              <p className="text-white font-semibold">{selectedCandidate.traits.processFocus}/10</p>
+            </div>
+
+            <div className="bg-[#0A0A0A] border border-[#333333] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
+                Resilience
+              </p>
+              <p className="text-white font-semibold">{selectedCandidate.traits.resilience}/10</p>
+            </div>
+
+            <div className="bg-[#0A0A0A] border border-[#333333] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
+                Innovation
+              </p>
+              <p className="text-white font-semibold">{selectedCandidate.traits.innovation}/10</p>
+            </div>
+
+            <div className="bg-[#0A0A0A] border border-[#333333] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
+                Stakeholder Mgmt
+              </p>
+              <p className="text-white font-semibold">
+                {selectedCandidate.traits.stakeholderManagement}/10
+              </p>
+            </div>
+
+            <div className="bg-[#0A0A0A] border border-[#333333] p-4">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
+                Execution Speed
+              </p>
+              <p className="text-white font-semibold">{selectedCandidate.traits.executionSpeed}/10</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  </div>
+</TabsContent>
             </Tabs>
           </main>
         </motion.div>
