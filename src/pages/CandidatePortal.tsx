@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Upload, 
@@ -122,6 +122,10 @@ export default function CandidatePortal() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [step]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       setFile(e.target.files[0]);
@@ -227,7 +231,7 @@ export default function CandidatePortal() {
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans selection:bg-[#0066B1] selection:text-white">
       {/* Header */}
-      <header className="fixed top-0 left-0 w-full z-50 px-8 py-6 bg-[#050505]/80 backdrop-blur-md border-b border-[#ffffff]/5 flex justify-between items-center">
+      <header className="sticky top-0 z-50 px-8 py-6 bg-[#050505]/95 backdrop-blur-md border-b border-[#ffffff]/5 flex justify-between items-center w-full">
         <div className="flex items-center gap-4">
           <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/BMW.svg" alt="BMW" className="w-10 h-10" />
           <div className="h-4 w-px bg-white/20"></div>
@@ -250,7 +254,7 @@ export default function CandidatePortal() {
       </header>
 
       {/* Main Wizard */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 pt-32 pb-24 max-w-4xl mx-auto w-full">
+      <main className="flex-1 flex flex-col items-center justify-start p-6 md:p-12 pt-12 pb-24 max-w-4xl mx-auto w-full">
         <AnimatePresence mode="wait">
           {/* Step 0: Vacancy Selection */}
           {step === 0 && (
