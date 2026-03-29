@@ -254,7 +254,16 @@ export default function Index() {
           <DashboardHeader onLogout={handleBackToVacancyDetail} />
 
           <main className="container px-6 py-6 space-y-6">
-            {aiLoading && (
+            {!selectedCandidate && !aiLoading && !aiError && (
+              <div className="flex flex-col items-center justify-center py-40 border border-dashed border-white/10 rounded-none bg-white/5">
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2">No Candidates Found</p>
+                <p className="text-xs text-muted-foreground">Please ensure candidates are uploaded or try again later.</p>
+              </div>
+            )}
+
+            {selectedCandidate && (
+              <>
+                {aiLoading && (
               <div className="bg-[#0066B1]/10 border border-[#0066B1]/30 rounded-none p-3 flex items-center gap-3">
                 <div className="w-4 h-4 border-2 border-[#0066B1] border-t-transparent rounded-full animate-spin" />
                 <p className="text-xs font-bold uppercase tracking-widest text-[#0066B1]">
@@ -482,6 +491,8 @@ export default function Index() {
   </div>
 </TabsContent>
             </Tabs>
+              </>
+            )}
           </main>
         </motion.div>
       )}

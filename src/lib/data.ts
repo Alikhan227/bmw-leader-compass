@@ -100,7 +100,11 @@ export const vacancies: Vacancy[] = [
 ];
 
 export function rankCandidates(candidateList: Candidate[], scenario: Scenario): Candidate[] {
-  return [...candidateList].sort((a, b) => b.fitScores[scenario] - a.fitScores[scenario]);
+  return [...candidateList].sort((a, b) => {
+    const scoreA = a.fitScores?.[scenario] ?? 0;
+    const scoreB = b.fitScores?.[scenario] ?? 0;
+    return scoreB - scoreA;
+  });
 }
 
 export function getScenarioConfig(scenario: Scenario): ScenarioConfig {

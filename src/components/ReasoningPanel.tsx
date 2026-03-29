@@ -8,6 +8,11 @@ interface ReasoningPanelProps {
 }
 
 export function ReasoningPanel({ candidate, scenario }: ReasoningPanelProps) {
+  if (!candidate) return (
+    <div className="bmw-card p-5 h-64 flex items-center justify-center bg-[#0A0A0A] border border-[#222222]">
+      <p className="text-[10px] uppercase tracking-widest text-muted-foreground animate-pulse">Calculating AI Reasoning Summary...</p>
+    </div>
+  );
   const config = getScenarioConfig(scenario);
 
   const fitScore = candidate.fitScores?.[scenario] ?? 0;
