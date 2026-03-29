@@ -9,8 +9,14 @@ interface ReasoningPanelProps {
 
 export function ReasoningPanel({ candidate, scenario }: ReasoningPanelProps) {
   const config = getScenarioConfig(scenario);
-  const fitScore = candidate.fitScores[scenario];
-  const risk = candidate.riskScore[scenario];
+
+  const fitScore = candidate.fitScores?.[scenario] ?? 0;
+  const risk = candidate.riskScore?.[scenario] ?? 5;
+  const reasoningText =
+    candidate.reasoning?.[scenario] ||
+    "AI reasoning is not available yet for this candidate.";
+
+  const timeToHire = candidate.timeToHire ?? 30;
 
   return (
     <AnimatePresence mode="wait">
@@ -29,14 +35,12 @@ export function ReasoningPanel({ candidate, scenario }: ReasoningPanelProps) {
           </p>
         </div>
 
-        {/* Reasoning text */}
         <div className="bg-[#111111] rounded-none p-4 border-l-4 border-[#0066B1]">
           <p className="text-sm leading-relaxed text-foreground">
-            {candidate.reasoning[scenario]}
+            {reasoningText}
           </p>
         </div>
 
-        {/* Trade-off matrix */}
         <div>
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             Decision Trade-offs
@@ -54,13 +58,12 @@ export function ReasoningPanel({ candidate, scenario }: ReasoningPanelProps) {
             />
             <TradeoffCard
               label="Time to Deploy"
-              value={`${candidate.timeToHire}d`}
-              level={candidate.timeToHire <= 14 ? "high" : candidate.timeToHire <= 45 ? "mid" : "low"}
+              value={`${timeToHire}d`}
+              level={timeToHire <= 14 ? "high" : timeToHire <= 45 ? "mid" : "low"}
             />
           </div>
         </div>
 
-        {/* Speed vs Right Hire explicit trade-off */}
         <div className="bg-[#0A0A0A] border border-[#333333] rounded-none p-4">
           <h4 className="text-[10px] font-bold text-[#0066B1] uppercase tracking-[0.2em] mb-2">
             Speed vs. Right Hire
@@ -82,11 +85,11 @@ export function ReasoningPanel({ candidate, scenario }: ReasoningPanelProps) {
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            {candidate.timeToHire <= 14
+            {timeToHire <= 14
               ? "✅ Fast deployment — low transition risk."
-              : candidate.timeToHire <= 45
-              ? "⚠️ Moderate timeline — plan for interim coverage."
-              : "🔴 Extended onboarding — consider interim leader."}
+              : timeToHire <= 45
+                ? "⚠️ Moderate timeline — plan for interim coverage."
+                : "🔴 Extended onboarding — consider interim leader."}
           </p>
         </div>
       </motion.div>
@@ -104,13 +107,17 @@ function TradeoffCard({
   level: "high" | "mid" | "low";
 }) {
   const bg =
-    level === "high" ? "bg-bmw-success/10 border-bmw-success/30" :
-    level === "mid" ? "bg-bmw-warning/10 border-bmw-warning/30" :
-    "bg-bmw-danger/10 border-bmw-danger/30";
+    level === "high"
+      ? "bg-bmw-success/10 border-bmw-success/30"
+      : level === "mid"
+        ? "bg-bmw-warning/10 border-bmw-warning/30"
+        : "bg-bmw-danger/10 border-bmw-danger/30";
 
   return (
     <div className={`rounded-none border p-3 ${bg}`}>
-      <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">{label}</p>
+      <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+        {label}
+      </p>
       <p className="text-lg font-bold text-white tracking-wider">{value}</p>
     </div>
   );
